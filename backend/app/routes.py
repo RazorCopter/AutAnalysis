@@ -63,46 +63,94 @@ async def import_scale(file: UploadFile = File(...)):
     
     content = await file.read()
     decoded = content.decode('utf-8-sig').splitlines()
-    reader = csv.reader(decoded, delimiter=';') # o sniffing dinamico
+    # Sniffing del delimitatore
+    delimiter = ';' if ';' in decoded[0] else ','
+    reader = csv.reader(decoded, delimiter=delimiter)
     
-    sezioni_dict = {}
-    current_section = "Sezione Generale"
-    
+    scales_to_import = []
+    current_scale = None
+    current_section = None
+
     for row in reader:
-        row_cleaned = [str(x).strip() for x in row]
-        non_empty = [x for x in row_cleaned if x]
-        if not non_empty: continue
-        
-        if len(non_empty) == 1:
-            val = non_empty[0]
-            if len(val) > 2:
-                current_section = val
-            continue
-            
-        testo = non_empty[0]
-        if len(testo) < 5 and len(non_empty) > 1:
-            testo = non_empty[1]
-            
-        domanda = Question(
-            id_domanda=f"pos_{uuid.uuid4().hex[:8]}",
-            testo_domanda=testo,
-            tipo_risposta="rating_1_to_5"
-        )
-        if current_section not in sezioni_dict: sezioni_dict[current_section] = []
-        sezioni_dict[current_section].append(domanda)
+        if not row or len(row) < 2: continue
+        tipo = row[0].strip().upper()
+        testo = row[1].strip()
+        descrizione = row[2].strip() if len(row) > 2 else ""
 
-    sezioni_list = [Section(titolo_sezione=k, domande=v) for k,v in sezioni_dict.items()]
-    scala_pos = Scale(
-        id="scala_pos",
-        nome="Scala POS Eterovalutativa",
-        descrizione=f"Importata il {datetime.utcnow().strftime('%Y-%m-%d')}",
-        sezioni=sezioni_list
-    )
+        if tipo == "SCALA":
+            if current_scale:
+                if current_section:
+                    current_scale.sezioni.append(current_section)
+                scales_to_import.append(current_scale)
+            
+            current_scale = Scale(
+                id=f"scale_{uuid.uuid4().hex[:8]}",
+                nome=testo,
+                descrizione=descrizione or f"Importata il {datetime.utcnow().strftime('%Y-%m-%d')}",
+                sezioni=[]
+            )
+            current_section = None
+            
+        elif tipo == "SEZIONE":
+            if not current_scale:
+                # Crea scala di default se manca
+                current_scale = Scale(
+                    id=f"scale_{uuid.uuid4().hex[:8]}",
+                    nome="Nuovo Protocollo",
+                    descrizione=f"Importata il {datetime.utcnow().strftime('%Y-%m-%d')}",
+                    sezioni=[]
+                )
+            if current_section:
+                current_scale.sezioni.append(current_section)
+            current_section = Section(titolo_sezione=testo, domande=[])
+            
+        elif tipo == "DOMANDA":
+            if not current_scale:
+                current_scale = Scale(
+                    id=f"scale_{uuid.uuid4().hex[:8]}",
+                    nome="Nuovo Protocollo",
+                    descrizione=f"Importata il {datetime.utcnow().strftime('%Y-%m-%d')}",
+                    sezioni=[]
+                )
+            if not current_section:
+                current_section = Section(titolo_sezione="Generale", domande=[])
+            
+            domanda = Question(
+                id_domanda=f"q_{uuid.uuid4().hex[:8]}",
+                testo_domanda=testo,
+                tipo_risposta=descrizione if descrizione else "rating_1_to_5"
+            )
+            current_section.domande.append(domanda)
 
-    await scales_collection.delete_many({})
-    await scales_collection.insert_one(scala_pos.model_dump())
+    # Aggiunta dell'ultimo blocco
+    if current_scale:
+        if current_section:
+            current_scale.sezioni.append(current_section)
+        scales_to_import.append(current_scale)
+
+    if not scales_to_import:
+        raise HTTPException(status_code=400, detail="Nessun dato valido trovato nel CSV")
+
+    # Inserimento nel DB (non cancelliamo più tutto, aggiungiamo)
+    for s in scales_to_import:
+        await scales_collection.insert_one(s.model_dump())
     
-    return {"message": "Protocollo importato con successo", "sections": len(sezioni_list)}
+    return {"message": "Protocolli importati con successo", "count": len(scales_to_import)}
+
+@admin_router.put("/scales/{id}", response_model=Scale, tags=["Admin - Configuration"])
+async def update_scale(id: str, scale: Scale):
+    scale_dict = scale.model_dump()
+    result = await scales_collection.replace_one({"id": id}, scale_dict)
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Protocollo non trovato")
+    return scale
+
+@admin_router.delete("/scales/{id}", tags=["Admin - Configuration"])
+async def delete_scale(id: str):
+    result = await scales_collection.delete_one({"id": id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Protocollo non trovato")
+    return {"message": "Protocollo eliminato con successo"}
 
 @admin_router.post("/settings", tags=["Admin - Configuration"])
 async def update_settings(settings: AppSettings):

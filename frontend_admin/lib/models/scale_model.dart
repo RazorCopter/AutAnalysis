@@ -16,6 +16,12 @@ class Question {
       tipoRisposta: json['tipo_risposta'],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id_domanda': idDomanda,
+    'testo_domanda': testoDomanda,
+    'tipo_risposta': tipoRisposta,
+  };
 }
 
 class Section {
@@ -35,11 +41,16 @@ class Section {
           .toList(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'titolo_sezione': titoloSezione,
+    'domande': domande.map((q) => q.toJson()).toList(),
+  };
 }
 
 class ScaleModel {
   final String id;
-  final String nome;
+  String nome;
   final String descrizione;
   final List<Section> sezioni;
 
@@ -60,4 +71,11 @@ class ScaleModel {
           .toList(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'nome': nome,
+    'descrizione': descrizione,
+    'sezioni': sezioni.map((s) => s.toJson()).toList(),
+  };
 }

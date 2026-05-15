@@ -50,6 +50,30 @@ class ApiService {
     }
   }
 
+  Future<bool> updateScale(ScaleModel scale) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/scales/${scale.id}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(scale.toJson()),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Errore aggiornamento scala: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteScale(String id) async {
+    try {
+      final response = await http.delete(Uri.parse('$baseUrl/scales/$id'));
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Errore eliminazione scala: $e');
+      return false;
+    }
+  }
+
   Future<String?> getGeminiKey() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/settings'));
