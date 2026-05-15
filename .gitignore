@@ -1,0 +1,29 @@
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+*.log
+pubspec.lock
+
+# Build outputs - NON committare, vengono generati dal Dockerfile
+**/build/
+**/.dart_tool/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+
+# Node
+node_modules/
