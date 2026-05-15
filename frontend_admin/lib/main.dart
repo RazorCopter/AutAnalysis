@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import 'screens/settings_screen.dart';
+import 'screens/protocols_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {

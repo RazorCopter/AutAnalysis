@@ -88,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   const Text('Protocolli Clinici', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  const Text('Importa le scale di valutazione da file CSV. Attenzione: questa operazione sovrascriverà le scale esistenti.'),
+                  const Text('Importa le scale di valutazione da file CSV. I nuovi protocolli verranno aggiunti all\'elenco di quelli gestibili.'),
                   const SizedBox(height: 16),
                   Row(
                     children: [

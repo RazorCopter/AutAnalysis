@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/scale_model.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
 
 class ProtocolsScreen extends StatefulWidget {
   const ProtocolsScreen({super.key});
