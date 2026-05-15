@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/settings_screen.dart';
+import 'screens/protocols_screen.dart';
 
 void main() {
   runApp(const AdminApp());
@@ -54,6 +55,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 label: Text('Anagrafica'),
               ),
               NavigationRailDestination(
+                icon: Icon(Icons.library_books),
+                label: Text('Protocolli'),
+              ),
+              NavigationRailDestination(
                 icon: Icon(Icons.settings),
                 label: Text('Impostazioni'),
               ),
@@ -62,15 +67,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
           const VerticalDivider(thickness: 1, width: 1),
           Expanded(
             child: _selectedIndex == 2
-                ? const SettingsScreen()
-                : Center(
-                    child: Text(
-                      _selectedIndex == 0 
-                        ? 'Dashboard (Grafici futuri)' 
-                        : 'Gestione Utenti (CRUD - Da migrare dal legacy)',
-                      style: const TextStyle(fontSize: 24),
-                    ),
-                  ),
+                ? const ProtocolsScreen()
+                : _selectedIndex == 3
+                    ? const SettingsScreen()
+                    : Center(
+                        child: Text(
+                          _selectedIndex == 0 
+                            ? 'Dashboard (Grafici futuri)' 
+                            : 'Gestione Utenti (CRUD - Da migrare dal legacy)',
+                          style: const TextStyle(fontSize: 24),
+                        ),
+                      ),
           ),
         ],
       ),

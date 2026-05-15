@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
+import '../models/scale_model.dart';
 
 class ApiService {
   // Dato che questo frontend è servito da Nginx sulla stessa origine e proxy verso backend,
@@ -32,6 +33,20 @@ class ApiService {
     } catch (e) {
       print('Errore upload: $e');
       return false;
+    }
+  }
+
+  Future<List<ScaleModel>> getScales() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/scales'));
+      if (response.statusCode == 200) {
+        final List<dynamic> body = jsonDecode(response.body);
+        return body.map((json) => ScaleModel.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Errore caricamento scale: $e');
+      return [];
     }
   }
 

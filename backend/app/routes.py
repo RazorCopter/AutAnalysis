@@ -21,6 +21,13 @@ async def get_users():
     users = await cursor.to_list(length=1000)
     return users
 
+@admin_router.get("/scales", response_model=List[Scale], tags=["Admin - Configuration"])
+async def get_admin_scales():
+    """Restituisce l'elenco completo delle scale e dei protocolli caricati."""
+    cursor = scales_collection.find({})
+    scales = await cursor.to_list(length=100)
+    return scales
+
 @admin_router.post("/users", response_model=User, status_code=status.HTTP_201_CREATED, tags=["Admin - Users"])
 async def create_user(user: User):
     user_dict = user.model_dump()
