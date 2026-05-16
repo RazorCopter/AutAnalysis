@@ -242,7 +242,9 @@ class _WizardScreenState extends State<WizardScreen>
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 _buildQuestionCard(currentQ, isTablet),
-                                const SizedBox(height: 20),
+                                const SizedBox(height: 12),
+                                _buildQuestionNote(currentQ.domanda, isTablet),
+                                const SizedBox(height: 8),
                                 _buildOptionsList(currentQ, isTablet),
                                 const SizedBox(height: 12),
                                 _buildNoteSection(currentQ, isTablet),
@@ -387,6 +389,37 @@ class _WizardScreenState extends State<WizardScreen>
     );
   }
 
+  // ─── Banner Note Domanda ───────────────────────────────────────────────────
+  Widget _buildQuestionNote(QuestionModel question, bool isTablet) {
+    if (question.note == null || question.note!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE3F2FD), // Azzurro chiaro tenue
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFBBDEFB)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info, color: Color(0xFF1976D2), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              question.note!,
+              style: TextStyle(
+                fontSize: isTablet ? 15 : 14,
+                color: const Color(0xFF0D47A1),
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ─── Options list (dynamic & animated) ────────────────────────────────────
   Widget _buildOptionsList(_WizardItem item, bool isTablet) {
     if (item.domanda.opzioni.isEmpty) {
@@ -470,13 +503,32 @@ class _WizardScreenState extends State<WizardScreen>
               const SizedBox(width: 16),
               // Testo opzione
               Expanded(
-                child: Text(
-                  opt.testoRisposta,
-                  style: TextStyle(
-                    fontSize: isTablet ? 18 : 16,
-                    fontWeight: FontWeight.w600,
-                    color: isSelected ? Colors.white : AppTheme.textPrimary,
-                  ),
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        opt.testoRisposta,
+                        style: TextStyle(
+                          fontSize: isTablet ? 18 : 16,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? Colors.white : AppTheme.textPrimary,
+                        ),
+                      ),
+                    ),
+                    if (opt.descrizione != null && opt.descrizione!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: Icon(
+                            Icons.info_outline,
+                            size: 20,
+                            color: isSelected ? Colors.white70 : AppTheme.textSecondary,
+                          ),
+                          onPressed: () => _showOptionDescription(opt),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               // Checkmark
@@ -490,6 +542,23 @@ class _WizardScreenState extends State<WizardScreen>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showOptionDescription(OptionModel opt) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(opt.testoRisposta, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(opt.descrizione ?? ''),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Chiudi'),
+          ),
+        ],
       ),
     );
   }

@@ -17,13 +17,15 @@ class PatientModel {
 class OptionModel {
   final String testoRisposta;
   final int punteggio;
+  final String? descrizione;
 
-  OptionModel({required this.testoRisposta, required this.punteggio});
+  OptionModel({required this.testoRisposta, required this.punteggio, this.descrizione});
 
   factory OptionModel.fromJson(Map<String, dynamic> json) {
     return OptionModel(
       testoRisposta: json['testo_risposta'] ?? '',
       punteggio: json['punteggio'] ?? 0,
+      descrizione: json['descrizione'],
     );
   }
 }
@@ -32,15 +34,17 @@ class QuestionModel {
   final String idDomanda;
   final String? codice;
   final String testoDomanda;
+  final String? note;
   final List<OptionModel> opzioni;
 
-  QuestionModel({required this.idDomanda, this.codice, required this.testoDomanda, required this.opzioni});
+  QuestionModel({required this.idDomanda, this.codice, required this.testoDomanda, this.note, required this.opzioni});
 
   factory QuestionModel.fromJson(Map<String, dynamic> json) {
     return QuestionModel(
       idDomanda: json['id_domanda'] ?? '',
       codice: json['codice'],
       testoDomanda: json['testo_domanda'] ?? '',
+      note: json['note'],
       opzioni: (json['opzioni'] as List?)?.map((e) => OptionModel.fromJson(e)).toList() ?? [],
     );
   }

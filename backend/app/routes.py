@@ -5,7 +5,7 @@ from .models import Scale, Evaluation, Patient, AppSettings, Section, Question, 
 from .database import evaluations_collection, database, settings_collection
 from .pdf_generator import generate_evaluation_pdf, aggregate_domains
 from datetime import datetime
-import csv
+import json
 import uuid
 import io
 
@@ -61,100 +61,119 @@ async def get_evaluations(id_patient: str):
     return evaluations
 
 @admin_router.post("/import-scale", tags=["Admin - Configuration"])
-async def import_scale(file: UploadFile = File(...), scale_type: str = Form(...)):
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="Il file deve essere un CSV")
-    
-    if scale_type in ["San Martin", "Griglia Autonomia ODFLAB", "ABS", "Scala Osservativa ODFLAB"]:
-        raise HTTPException(status_code=501, detail="Template di import per questa scala in fase di sviluppo")
-    elif scale_type != "POS":
-        raise HTTPException(status_code=400, detail="Tipo scala non supportato")
-    
+async def import_scale(file: UploadFile = File(...)):
+    """
+    Importa una scala clinica da un file JSON strutturato.
+
+    Formato atteso:
+    {
+      "scala": {
+        "id": "pos_2024",          // opzionale, generato se assente
+        "nome": "Scala POS",
+        "descrizione": "...",      // opzionale
+        "domini": [
+          {
+            "codice": "SP",
+            "nome": "Sviluppo Personale",
+            "descrizione": "...",  // opzionale
+            "domande": [
+              {
+                "codice": "SP-1",
+                "testo": "...",
+                "note": "...",     // opzionale
+                "opzioni": [
+                  { "punteggio": 3, "etichetta": "Riesce da solo", "descrizione": "..." }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+    """
+    if not (file.filename or '').lower().endswith('.json'):
+        raise HTTPException(status_code=400, detail="Il file deve essere un JSON (.json)")
+
     content = await file.read()
-    decoded = content.decode('utf-8-sig').splitlines()
-    # Sniffing del delimitatore
-    delimiter = ';' if ';' in decoded[0] else ','
-    reader = csv.reader(decoded, delimiter=delimiter)
-    
-    scales_to_import = []
-    current_scale = None
-    current_section = None
+    try:
+        data = json.loads(content.decode('utf-8-sig'))
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise HTTPException(status_code=422, detail=f"JSON non valido: {exc}")
 
-    for row in reader:
-        if not row or len(row) < 3: continue
-        
-        # Formato POS: CODICE, TIPO, TESTO, OPZIONE_3, OPZIONE_2, OPZIONE_1
-        codice = row[0].strip()
-        tipo = row[1].strip().upper()
-        testo = row[2].strip()
+    scala_data = data.get("scala")
+    if not scala_data:
+        raise HTTPException(status_code=422, detail="Campo 'scala' mancante nel JSON")
 
-        if tipo == "SCALA":
-            if current_scale:
-                if current_section:
-                    current_scale.sezioni.append(current_section)
-                scales_to_import.append(current_scale)
-            
-            current_scale = Scale(
-                id=f"scale_{uuid.uuid4().hex[:8]}",
-                nome=testo,
-                descrizione=f"Importata il {datetime.utcnow().strftime('%Y-%m-%d')}",
-                sezioni=[]
-            )
-            current_section = None
-            
-        elif tipo == "SEZIONE":
-            if not current_scale:
-                current_scale = Scale(
-                    id=f"scale_{uuid.uuid4().hex[:8]}",
-                    nome="Nuovo Protocollo POS",
-                    descrizione=f"Importata il {datetime.utcnow().strftime('%Y-%m-%d')}",
-                    sezioni=[]
-                )
-            if current_section:
-                current_scale.sezioni.append(current_section)
-            current_section = Section(titolo_sezione=testo, domande=[])
-            
-        elif tipo == "DOMANDA":
-            if not current_scale:
-                current_scale = Scale(
-                    id=f"scale_{uuid.uuid4().hex[:8]}",
-                    nome="Nuovo Protocollo POS",
-                    descrizione=f"Importata il {datetime.utcnow().strftime('%Y-%m-%d')}",
-                    sezioni=[]
-                )
-            if not current_section:
-                current_section = Section(titolo_sezione="Generale", domande=[])
-            
-            opzioni = []
-            if len(row) > 3 and row[3].strip():
-                opzioni.append({"testo_risposta": row[3].strip(), "punteggio": 3})
-            if len(row) > 4 and row[4].strip():
-                opzioni.append({"testo_risposta": row[4].strip(), "punteggio": 2})
-            if len(row) > 5 and row[5].strip():
-                opzioni.append({"testo_risposta": row[5].strip(), "punteggio": 1})
-            
-            domanda = Question(
+    # ── ID e metadati radice ──────────────────────────────────────────────
+    scale_id = scala_data.get("id") or f"scale_{uuid.uuid4().hex[:8]}"
+    nome = scala_data.get("nome") or "Scala senza nome"
+    descrizione = scala_data.get("descrizione") or \
+        f"Importata il {datetime.utcnow().strftime('%Y-%m-%d')}"
+
+    # ── Costruzione sezioni ───────────────────────────────────────────────
+    sezioni: list[Section] = []
+
+    for dominio in scala_data.get("domini", []):
+        codice_dom = dominio.get("codice") or ""
+        nome_dom = dominio.get("nome") or dominio.get("titolo_sezione") or codice_dom
+        desc_dom = dominio.get("descrizione")
+
+        domande: list[Question] = []
+        for d in dominio.get("domande", []):
+            codice_q = d.get("codice")
+            testo_q = d.get("testo") or d.get("testo_domanda") or ""
+            note_q = d.get("note")
+
+            opzioni: list[Option] = []
+            for o in d.get("opzioni", []):
+                opzioni.append(Option(
+                    punteggio=int(o.get("punteggio", 0)),
+                    testo_risposta=o.get("etichetta") or o.get("testo_risposta") or "",
+                    descrizione=o.get("descrizione"),
+                ))
+
+            # Ordina opzioni per punteggio decrescente (3→1) per consistenza UI
+            opzioni.sort(key=lambda x: x.punteggio, reverse=True)
+
+            domande.append(Question(
                 id_domanda=f"q_{uuid.uuid4().hex[:8]}",
-                codice=codice if codice else None,
-                testo_domanda=testo,
-                opzioni=opzioni
-            )
-            current_section.domande.append(domanda)
+                codice=codice_q,
+                testo_domanda=testo_q,
+                note=note_q,
+                opzioni=opzioni,
+            ))
 
-    # Aggiunta dell'ultimo blocco
-    if current_scale:
-        if current_section:
-            current_scale.sezioni.append(current_section)
-        scales_to_import.append(current_scale)
+        sezioni.append(Section(
+            codice_sezione=codice_dom,
+            titolo_sezione=nome_dom,
+            descrizione_sezione=desc_dom,
+            domande=domande,
+        ))
 
-    if not scales_to_import:
-        raise HTTPException(status_code=400, detail="Nessun dato valido trovato nel CSV")
+    if not sezioni:
+        raise HTTPException(status_code=422, detail="Il JSON non contiene domini/sezioni")
 
-    # Inserimento nel DB
-    for s in scales_to_import:
-        await scales_collection.insert_one(s.model_dump())
-    
-    return {"message": "Protocolli importati con successo", "count": len(scales_to_import)}
+    scale = Scale(
+        id=scale_id,
+        nome=nome,
+        descrizione=descrizione,
+        sezioni=sezioni,
+    )
+
+    # Upsert: se esiste già una scala con lo stesso id, la sostituisce
+    await scales_collection.replace_one(
+        {"id": scale_id}, scale.model_dump(), upsert=True
+    )
+
+    total_questions = sum(len(s.domande) for s in sezioni)
+    return {
+        "message": "Scala importata con successo",
+        "id": scale_id,
+        "nome": nome,
+        "sezioni": len(sezioni),
+        "domande_totali": total_questions,
+    }
+
 
 @admin_router.put("/scales/{id}", response_model=Scale, tags=["Admin - Configuration"])
 async def update_scale(id: str, scale: Scale):

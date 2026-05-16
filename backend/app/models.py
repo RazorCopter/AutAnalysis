@@ -24,15 +24,19 @@ class AppSettings(BaseModel):
 class Option(BaseModel):
     testo_risposta: str
     punteggio: int
+    descrizione: Optional[str] = None   # Testo descrittivo esteso
 
 class Question(BaseModel):
     id_domanda: str
     codice: Optional[str] = None
     testo_domanda: str
+    note: Optional[str] = None           # Avvertenze / contesto clinico
     opzioni: List[Option] = []
 
 class Section(BaseModel):
+    codice_sezione: Optional[str] = None # es. "SP"
     titolo_sezione: str
+    descrizione_sezione: Optional[str] = None
     domande: List[Question]
 
 class Scale(BaseModel):
