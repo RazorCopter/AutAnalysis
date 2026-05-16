@@ -31,7 +31,8 @@ class _WizardScreenState extends State<WizardScreen> {
   bool _isLoading = true;
   ScaleModel? _scale;
   List<_WizardItem> _questions = [];
-  Map<String, int> _answers = {}; // id_domanda -> score
+  Map<String, int> _answers = {};   // codice_domanda -> punteggio
+  Map<String, String> _notes = {};  // codice_domanda -> nota
 
   int _currentIndex = 0;
 
@@ -95,7 +96,11 @@ class _WizardScreenState extends State<WizardScreen> {
     setState(() => _isLoading = true);
 
     final answersList = _answers.entries.map((e) {
-      return AnswerModel(idDomanda: e.key, valoreRisposta: e.value);
+      return AnswerModel(
+        codiceDomanda: e.key,
+        punteggio: e.value,
+        nota: _notes[e.key],
+      );
     }).toList();
 
     final evaluation = EvaluationModel(
@@ -262,7 +267,43 @@ class _WizardScreenState extends State<WizardScreen> {
                 }).toList(),
               ),
             ),
-            
+
+            // Campo Note (appare solo dopo aver selezionato una risposta)
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: hasAnsweredCurrent
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+                      child: TextField(
+                        key: ValueKey(currentQ.domanda.idDomanda),
+                        controller: TextEditingController(
+                          text: _notes[currentQ.domanda.codice ?? currentQ.domanda.idDomanda],
+                        ),
+                        onChanged: (val) {
+                          _notes[currentQ.domanda.codice ?? currentQ.domanda.idDomanda] = val;
+                        },
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          hintText: 'Nota opzionale per questa risposta...',
+                          prefixIcon: const Icon(Icons.notes, color: AppTheme.textSecondary),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: Color(0xFFE8EEF8)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: Color(0xFFE8EEF8)),
+                          ),
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+
             const SizedBox(height: 16),
 
             // Navigazione: Indietro / Avanti
@@ -295,15 +336,16 @@ class _WizardScreenState extends State<WizardScreen> {
   }
 
   Widget _buildScoreButton(int score, String text, Color color) {
-    final currentQId = _questions[_currentIndex].domanda.idDomanda;
-    final isSelected = _answers[currentQId] == score;
+    final currentQ = _questions[_currentIndex];
+    final keyId = currentQ.domanda.codice ?? currentQ.domanda.idDomanda;
+    final isSelected = _answers[keyId] == score;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: GestureDetector(
         onTap: () {
           setState(() {
-            _answers[currentQId] = score;
+            _answers[keyId] = score;
           });
         },
         child: AnimatedContainer(

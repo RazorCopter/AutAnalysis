@@ -79,17 +79,17 @@ class ScaleModel {
 }
 
 class AnswerModel {
-  final String idDomanda;
-  final int valoreRisposta;
-  final String? noteOpzionali;
+  final String codiceDomanda;
+  final int punteggio;
+  final String? nota;
 
-  AnswerModel({required this.idDomanda, required this.valoreRisposta, this.noteOpzionali});
+  AnswerModel({required this.codiceDomanda, required this.punteggio, this.nota});
 
   Map<String, dynamic> toJson() {
     return {
-      'id_domanda': idDomanda,
-      'valore_risposta': valoreRisposta,
-      'note_opzionali': noteOpzionali,
+      'codice_domanda': codiceDomanda,
+      'punteggio': punteggio,
+      if (nota != null && nota!.isNotEmpty) 'nota': nota,
     };
   }
 }
