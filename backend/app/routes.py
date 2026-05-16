@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from typing import List
 from bson import ObjectId
 from .models import Scale, Evaluation, Patient, AppSettings, Section, Question, Option, DOMINI_POS, AggregatedEvaluation, EvaluationUpdateRequest
-from .database import evaluations_collection, database, settings_collection
+from .database import evaluations_collection, database, settings_collection, patients_collection, scales_collection, users_collection
 from .pdf_generator import generate_evaluation_pdf, aggregate_domains
 from datetime import datetime, timezone
 import json
@@ -12,9 +12,6 @@ import io
 
 admin_router = APIRouter()
 client_router = APIRouter()
-
-scales_collection = database.get_collection("scales")
-patients_collection = database.get_collection("patients")
 
 
 async def _find_evaluation_document(evaluation_id: str):
@@ -326,6 +323,80 @@ async def get_settings():
         return settings
     return AppSettings()
 
+
+# ─── DATABASE EXPORT / IMPORT ────────────────────────────────────────────────
+
+async def _collect_collection(name: str, collection) -> list:
+    """Raccoglie tutti i documenti di una collezione, convertendo ObjectId in stringa."""
+    docs = []
+    async for doc in collection.find({}):
+        doc.pop('_id', None)
+        docs.append(doc)
+    return docs
+
+
+@admin_router.get("/export-db", tags=["Admin - Database"])
+async def export_database():
+    """Esporta l'intero database in un unico file JSON."""
+    db_dump = {
+        "metadata": {
+            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "version": "1.0",
+        },
+        "collections": {
+            "patients": await _collect_collection("patients", patients_collection),
+            "evaluations": await _collect_collection("evaluations", evaluations_collection),
+            "scales": await _collect_collection("scales", scales_collection),
+            "users": await _collect_collection("users", users_collection),
+            "settings": await _collect_collection("settings", settings_collection),
+        }
+    }
+    json_bytes = json.dumps(db_dump, ensure_ascii=False, indent=2, default=str).encode('utf-8')
+
+    filename = f"autanalysis_backup_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+    return StreamingResponse(
+        io.BytesIO(json_bytes),
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@admin_router.post("/import-db", tags=["Admin - Database"])
+async def import_database(file: UploadFile = File(...)):
+    """Importa l'intero database da un file JSON di backup."""
+    if not (file.filename or '').lower().endswith('.json'):
+        raise HTTPException(status_code=400, detail="Il file deve essere un JSON (.json)")
+
+    content = await file.read()
+    try:
+        data = json.loads(content.decode('utf-8-sig'))
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise HTTPException(status_code=422, detail=f"JSON non valido: {exc}")
+
+    collections_data = data.get("collections")
+    if not collections_data:
+        raise HTTPException(status_code=422, detail="Formato backup non valido: 'collections' mancante")
+
+    mapping = {
+        "patients": patients_collection,
+        "evaluations": evaluations_collection,
+        "scales": scales_collection,
+        "users": users_collection,
+        "settings": settings_collection,
+    }
+
+    imported_counts = {}
+    for coll_name, coll in mapping.items():
+        docs = collections_data.get(coll_name, [])
+        if docs:
+            await coll.delete_many({})
+            await coll.insert_many(docs)
+            imported_counts[coll_name] = len(docs)
+
+    return {
+        "message": "Database importato con successo",
+        "collections": imported_counts,
+    }
 
 
 # ==========================================

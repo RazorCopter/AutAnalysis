@@ -1,3 +1,6 @@
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/api_service.dart';
@@ -14,7 +17,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _apiKeyController = TextEditingController();
   
   bool _isLoading = false;
+  bool _isExporting = false;
+  bool _isImporting = false;
   String? _uploadStatus;
+  String? _dbStatus;
 
   @override
   void initState() {
@@ -35,7 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
-      withData: true, // Fondamentale per il Web
+      withData: true,
     );
 
     if (result != null) {
@@ -54,6 +60,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _uploadStatus = 'Protocollo caricato con successo!';
         } else {
           _uploadStatus = 'Errore durante il caricamento o formato non ancora supportato.';
+        }
+      });
+    }
+  }
+
+  Future<void> _exportDatabase() async {
+    setState(() {
+      _isExporting = true;
+      _dbStatus = 'Esportazione in corso...';
+    });
+    final bytes = await _apiService.exportDatabase();
+    setState(() => _isExporting = false);
+    if (bytes != null) {
+      final b64 = base64Encode(bytes);
+      final dataUrl = 'data:application/json;base64,$b64';
+      final timestamp = DateTime.now().toIso8601String().replaceAll(RegExp(r'[:.]'), '-').substring(0, 19);
+      html.AnchorElement(href: dataUrl)
+        ..setAttribute('download', 'autanalysis_backup_$timestamp.json')
+        ..click();
+      setState(() => _dbStatus = 'Backup esportato con successo!');
+    } else {
+      setState(() => _dbStatus = 'Errore durante l\'esportazione.');
+    }
+  }
+
+  Future<void> _importDatabase() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+      withData: true,
+    );
+
+    if (result != null) {
+      setState(() {
+        _isImporting = true;
+        _dbStatus = 'Importazione in corso...';
+      });
+
+      final success = await _apiService.importDatabase(result.files.single);
+
+      setState(() {
+        _isImporting = false;
+        if (success) {
+          _dbStatus = 'Database importato con successo!';
+        } else {
+          _dbStatus = 'Errore durante l\'importazione. Verifica il formato del file.';
         }
       });
     }
@@ -148,6 +200,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ],
                   ),
+                ],
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Sezione Database
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Database', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  const Text('Esporta l\'intero database in un file JSON o ripristina un backup precedente.'),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      SizedBox(
+                        height: 56,
+                        child: ElevatedButton.icon(
+                          onPressed: _isExporting || _isImporting ? null : _exportDatabase,
+                          icon: _isExporting
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.download_rounded),
+                          label: Text(_isExporting ? 'Esportazione...' : 'Esporta Database'),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      SizedBox(
+                        height: 56,
+                        child: ElevatedButton.icon(
+                          onPressed: _isExporting || _isImporting ? null : _importDatabase,
+                          icon: _isImporting
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.upload_file),
+                          label: Text(_isImporting ? 'Importazione...' : 'Importa Database'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_dbStatus != null) ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        if (_isImporting || _isExporting) const CircularProgressIndicator(),
+                        if (_isImporting || _isExporting) const SizedBox(width: 16),
+                        Expanded(child: Text(_dbStatus!, style: TextStyle(color: _dbStatus!.contains('Errore') ? Colors.red : Colors.green))),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

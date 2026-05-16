@@ -212,4 +212,44 @@ class ApiService {
       return null;
     }
   }
+
+  // --- DATABASE EXPORT / IMPORT ---
+
+  Future<List<int>?> exportDatabase() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/export-db'),
+      );
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      }
+      return null;
+    } catch (e) {
+      print('Errore export database: $e');
+      return null;
+    }
+  }
+
+  Future<bool> importDatabase(PlatformFile file) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/import-db'),
+      );
+      if (file.bytes != null) {
+        request.files.add(http.MultipartFile.fromBytes(
+          'file',
+          file.bytes!,
+          filename: file.name,
+        ));
+      } else {
+        throw Exception("Impossibile leggere i bytes del file");
+      }
+      final response = await request.send();
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Errore import database: $e');
+      return false;
+    }
+  }
 }
