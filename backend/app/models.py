@@ -45,9 +45,9 @@ class Scale(BaseModel):
 # --- MODELLI VALUTAZIONE (Evaluation Models) ---
 
 class Answer(BaseModel):
-    id_domanda: str
-    valore_risposta: int
-    note_opzionali: Optional[str] = None
+    codice_domanda: str
+    punteggio: int
+    nota: Optional[str] = None
 
 class Evaluation(BaseModel):
     id_valutazione: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -56,4 +56,36 @@ class Evaluation(BaseModel):
     id_scala: str
     data_compilazione: datetime = Field(default_factory=datetime.utcnow)
     nome_operatore: str
+    risposte: List[Answer]
+
+# --- MODELLI AGGREGAZIONE E PDF ---
+
+DOMINI_POS = {
+    "SP": "Social Partecipazione",
+    "AD": "Attività Domestiche",
+    "RI": "Risorse Inclusive",
+    "IS": "Istruzione/Scuola",
+    "D":  "Diritti",
+    "BE": "Benessere Emotivo",
+    "BF": "Benessere Fisico",
+    "BM": "Benessere Materiale",
+}
+
+class DomainScore(BaseModel):
+    codice: str
+    etichetta: str
+    punteggio_totale: int
+    num_domande: int
+
+class AggregatedEvaluation(BaseModel):
+    id_valutazione: str
+    id_paziente: str
+    id_scala: str
+    anno: int
+    data_compilazione: datetime
+    nome_operatore: str
+    domini: List[DomainScore]
+    risposte: List[Answer]
+
+class EvaluationUpdateRequest(BaseModel):
     risposte: List[Answer]

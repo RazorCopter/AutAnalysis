@@ -1,10 +1,13 @@
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form
-from typing import List
-from .models import Scale, Evaluation, Patient, AppSettings, Section, Question
+from fastapi import APIRouter, HTTPException, Query, status, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
+from typing import List, Literal
+from .models import Scale, Evaluation, Patient, AppSettings, Section, Question, DOMINI_POS, AggregatedEvaluation, EvaluationUpdateRequest
 from .database import evaluations_collection, database, settings_collection
+from .pdf_generator import generate_evaluation_pdf, aggregate_domains
 from datetime import datetime
 import csv
 import uuid
+import io
 
 admin_router = APIRouter()
 client_router = APIRouter()
@@ -167,6 +170,90 @@ async def delete_scale(id: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Protocollo non trovato")
     return {"message": "Protocollo eliminato con successo"}
+
+
+@admin_router.get("/evaluations/{patient_id}/{scale_id}",
+                  response_model=AggregatedEvaluation,
+                  tags=["Admin - Evaluations"])
+async def get_aggregated_evaluation(patient_id: str, scale_id: str):
+    """Recupera l'ultima valutazione per paziente+scala con aggregazione per dominio."""
+    eval_doc = await evaluations_collection.find_one(
+        {"id_paziente": patient_id, "id_scala": scale_id},
+        sort=[("data_compilazione", -1)]
+    )
+    if not eval_doc:
+        raise HTTPException(status_code=404, detail="Nessuna valutazione trovata")
+
+    domains = aggregate_domains(eval_doc.get("risposte", []), DOMINI_POS)
+    return AggregatedEvaluation(
+        id_valutazione=eval_doc["id_valutazione"],
+        id_paziente=eval_doc["id_paziente"],
+        id_scala=eval_doc["id_scala"],
+        anno=eval_doc["anno"],
+        data_compilazione=eval_doc["data_compilazione"],
+        nome_operatore=eval_doc["nome_operatore"],
+        domini=domains,
+        risposte=eval_doc.get("risposte", []),
+    )
+
+
+@admin_router.put("/evaluations/{evaluation_id}",
+                  response_model=AggregatedEvaluation,
+                  tags=["Admin - Evaluations"])
+async def update_evaluation(evaluation_id: str, payload: EvaluationUpdateRequest):
+    """Modifica inline punteggi/note di una valutazione, restituisce i dati riaggregati."""
+    existing = await evaluations_collection.find_one({"id_valutazione": evaluation_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Valutazione non trovata")
+
+    new_risposte = [r.model_dump() for r in payload.risposte]
+    await evaluations_collection.update_one(
+        {"id_valutazione": evaluation_id},
+        {"$set": {"risposte": new_risposte}}
+    )
+    existing["risposte"] = new_risposte
+    domains = aggregate_domains(new_risposte, DOMINI_POS)
+    return AggregatedEvaluation(
+        id_valutazione=existing["id_valutazione"],
+        id_paziente=existing["id_paziente"],
+        id_scala=existing["id_scala"],
+        anno=existing["anno"],
+        data_compilazione=existing["data_compilazione"],
+        nome_operatore=existing["nome_operatore"],
+        domini=domains,
+        risposte=new_risposte,
+    )
+
+
+@admin_router.get("/evaluations/{evaluation_id}/pdf", tags=["Admin - Evaluations"])
+async def download_evaluation_pdf(
+    evaluation_id: str,
+    chart_type: Literal["linear", "bars"] = Query(..., description="Tipo di grafico: linear | bars"),
+):
+    """Genera e scarica il PDF della valutazione con il grafico selezionato."""
+    eval_doc = await evaluations_collection.find_one({"id_valutazione": evaluation_id})
+    if not eval_doc:
+        raise HTTPException(status_code=404, detail="Valutazione non trovata")
+
+    patient_doc = await patients_collection.find_one({"id": eval_doc["id_paziente"]})
+    scale_doc   = await scales_collection.find_one({"id": eval_doc["id_scala"]})
+
+    domains = aggregate_domains(eval_doc.get("risposte", []), DOMINI_POS)
+
+    pdf_bytes = generate_evaluation_pdf(
+        evaluation=eval_doc,
+        patient=patient_doc or {},
+        scale=scale_doc or {},
+        domains=domains,
+        chart_type=chart_type,
+    )
+
+    filename = f"valutazione_{evaluation_id[:8]}_{chart_type}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 @admin_router.post("/settings", tags=["Admin - Configuration"])
 async def update_settings(settings: AppSettings):
