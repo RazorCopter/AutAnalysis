@@ -33,8 +33,6 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
   bool _isSaving = false;
   bool _isDownloading = false;
 
-  String _selectedChartType = 'linear'; // 'linear' | 'bars'
-
   // Teniamo una copia mutabile delle risposte per l'editing inline
   List<AnswerModel> _editableAnswers = [];
 
@@ -117,18 +115,14 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
   Future<void> _downloadPdf() async {
     if (_eval == null) return;
     setState(() => _isDownloading = true);
-    final bytes = await _api.downloadEvaluationPdf(
-      _eval!.idValutazione,
-      _selectedChartType,
-    );
+    final bytes = await _api.downloadEvaluationPdf(_eval!.idValutazione);
     setState(() => _isDownloading = false);
     if (bytes != null) {
-      // Flutter Web: trigger download via data URL
       final b64 = base64Encode(bytes);
       final dataUrl = 'data:application/pdf;base64,$b64';
       html.AnchorElement(href: dataUrl)
         ..setAttribute(
-            'download', 'valutazione_${widget.patient.cognome}_$_selectedChartType.pdf')
+            'download', 'valutazione_${widget.patient.cognome}.pdf')
         ..click();
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -210,7 +204,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
               : const Icon(Icons.picture_as_pdf_outlined, size: 18),
-          label: Text(_isDownloading ? 'Generazione...' : 'Esporta PDF ($_selectedChartType)'),
+          label: Text(_isDownloading ? 'Generazione...' : 'Esporta PDF'),
         ),
         const SizedBox(width: 16),
       ],
@@ -338,135 +332,14 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Profilo Punteggi per Dominio',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                // Selettore tipo grafico (Material 3 SegmentedButton)
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                      value: 'linear',
-                      icon: Icon(Icons.show_chart_rounded, size: 18),
-                      label: Text('Profilo Lineare'),
-                    ),
-                    ButtonSegment(
-                      value: 'bars',
-                      icon: Icon(Icons.bar_chart_rounded, size: 18),
-                      label: Text('Istogramma Barre'),
-                    ),
-                  ],
-                  selected: {_selectedChartType},
-                  onSelectionChanged: (val) =>
-                      setState(() => _selectedChartType = val.first),
-                  style: SegmentedButton.styleFrom(
-                    selectedBackgroundColor: AppTheme.primaryColor,
-                    selectedForegroundColor: Colors.white,
-                  ),
-                ),
-              ],
-            ),
+            const Text('Profilo Punteggi per Dominio',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
             const SizedBox(height: 24),
             SizedBox(
               height: 300,
-              child: _selectedChartType == 'linear'
-                  ? _buildLineChart()
-                  : _buildBarChart(),
+              child: _buildBarChart(),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  // ─── Grafico Lineare ───────────────────────────────────────────────────────
-  Widget _buildLineChart() {
-    final domains = _eval!.domini;
-    final spots = domains.asMap().entries.map((e) {
-      return FlSpot(e.key.toDouble(), e.value.punteggio.toDouble());
-    }).toList();
-
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          getDrawingHorizontalLine: (_) =>
-              FlLine(color: const Color(0xFFE8EEF8), strokeWidth: 1),
-        ),
-        borderData: FlBorderData(show: false),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 36,
-              getTitlesWidget: (val, _) {
-                final idx = val.toInt();
-                if (idx < 0 || idx >= domains.length) return const SizedBox();
-                return Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    domains[idx].codice,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 32,
-              interval: 5,
-              getTitlesWidget: (val, _) => Text(
-                val.toInt().toString(),
-                style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
-              ),
-            ),
-          ),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        ),
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
-            curveSmoothness: 0.25,
-            color: AppTheme.primaryColor,
-            barWidth: 3,
-            belowBarData: BarAreaData(
-              show: true,
-              color: AppTheme.primaryColor.withValues(alpha: 0.10),
-            ),
-            dotData: FlDotData(
-              show: true,
-              getDotPainter: (spot, percent, bar, idx) =>
-                  FlDotCirclePainter(
-                radius: 5,
-                color: Colors.white,
-                strokeWidth: 2.5,
-                strokeColor: AppTheme.primaryColor,
-              ),
-            ),
-          ),
-        ],
-        minX: 0,
-        maxX: (domains.length - 1).toDouble(),
-        lineTouchData: LineTouchData(
-          touchTooltipData: LineTouchTooltipData(
-            getTooltipItems: (spots) => spots.map((s) {
-              final d = domains[s.x.toInt()];
-              return LineTooltipItem(
-                '${d.etichetta}\n${s.y.toInt()} pt',
-                const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-              );
-            }).toList(),
-          ),
         ),
       ),
     );
@@ -493,18 +366,24 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 36,
+              reservedSize: 48,
               getTitlesWidget: (val, _) {
                 final idx = val.toInt();
                 if (idx < 0 || idx >= domains.length) return const SizedBox();
                 return Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    domains[idx].codice,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                      color: AppTheme.textPrimary,
+                  padding: const EdgeInsets.only(top: 6),
+                  child: SizedBox(
+                    width: 70,
+                    child: Text(
+                      domains[idx].etichetta,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        color: AppTheme.textPrimary,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 );

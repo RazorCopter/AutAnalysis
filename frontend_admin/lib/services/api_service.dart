@@ -198,11 +198,10 @@ class ApiService {
     }
   }
 
-  Future<List<int>?> downloadEvaluationPdf(
-      String evaluationId, String chartType) async {
+  Future<List<int>?> downloadEvaluationPdf(String evaluationId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/evaluations/$evaluationId/pdf?chart_type=$chartType'),
+        Uri.parse('$baseUrl/evaluations/$evaluationId/pdf'),
       );
       if (response.statusCode == 200) {
         return response.bodyBytes;

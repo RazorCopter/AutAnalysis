@@ -3,7 +3,7 @@ pdf_generator.py
 Generazione PDF per valutazioni POS con grafici (lineare o barre).
 """
 import io
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict
 
 import matplotlib
@@ -57,50 +57,24 @@ def aggregate_domains(risposte: list, domini_map: Dict[str, str]) -> List[dict]:
     return list(aggregated.values())
 
 
-# ─── Grafico: lineare ────────────────────────────────────────────────────────
-def _make_line_chart(domains: List[dict]) -> io.BytesIO:
-    labels = [d["codice"] for d in domains]
-    scores = [d["punteggio_totale"] for d in domains]
-
-    fig, ax = plt.subplots(figsize=(10, 3.8), dpi=140)
-    fig.patch.set_facecolor('#F8FBFF')
-    ax.set_facecolor('#F8FBFF')
-
-    x = np.arange(len(labels))
-    ax.plot(x, scores, marker='o', markersize=10, linewidth=2.5,
-            color='#64B5F6', markerfacecolor='white', markeredgewidth=2.5,
-            markeredgecolor='#64B5F6', zorder=5)
-    ax.fill_between(x, scores, alpha=0.12, color='#64B5F6')
-
-    for i, (xi, yi) in enumerate(zip(x, scores)):
-        ax.annotate(str(yi), (xi, yi), textcoords="offset points", xytext=(0, 10),
-                    ha='center', fontsize=10, fontweight='bold', color='#2D3748')
-
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=11, fontweight='bold', color='#2D3748')
-    ax.set_ylabel('Punteggio', fontsize=10, color='#718096')
-    ax.set_ylim(0, max(scores) * 1.35 if scores else 20)
-    ax.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_color('#E8EEF8')
-    ax.spines['bottom'].set_color('#E8EEF8')
-    ax.tick_params(colors='#718096')
-    ax.grid(axis='y', color='#E8EEF8', linestyle='--', linewidth=0.8)
-    ax.set_title('Profilo Lineare dei Punteggi per Dominio', fontsize=13,
-                 fontweight='bold', color='#2D3748', pad=12)
-
-    plt.tight_layout()
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight', facecolor='#F8FBFF')
-    plt.close(fig)
-    buf.seek(0)
-    return buf
+def _wrap_label(text: str, max_chars: int = 14) -> str:
+    """Divide un'etichetta su due righe se supera max_chars."""
+    if len(text) <= max_chars:
+        return text
+    if ' ' in text:
+        mid = len(text) // 2
+        best = mid
+        for i, ch in enumerate(text):
+            if ch == ' ':
+                if abs(i - mid) < abs(best - mid):
+                    best = i
+        return text[:best] + '\n' + text[best + 1:]
+    mid = len(text) // 2
+    return text[:mid] + '\n' + text[mid:]
 
 
-# ─── Grafico: barre orizzontali ──────────────────────────────────────────────
 def _make_bar_chart(domains: List[dict], score_min: int = 6, score_max: int = 18) -> io.BytesIO:
-    labels   = [f"{d['codice']} - {d['etichetta']}" for d in domains]
+    labels   = [_wrap_label(d['etichetta']) for d in domains]
     scores   = [d["punteggio_totale"] for d in domains]
     n = len(labels)
     colors   = DOMAIN_COLORS[:n]
@@ -149,7 +123,6 @@ def generate_evaluation_pdf(
     patient: dict,
     scale: dict,
     domains: List[dict],
-    chart_type: str,  # "linear" | "bars"
 ) -> bytes:
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -212,7 +185,7 @@ def generate_evaluation_pdf(
 
     # ── Info paziente / valutazione ─────────────────────────────────────────
     nome_paziente = f"{patient.get('nome', '')} {patient.get('cognome', '')}"
-    data_str = evaluation.get("data_compilazione", datetime.utcnow())
+    data_str = evaluation.get("data_compilazione", datetime.now(timezone.utc))
     if isinstance(data_str, datetime):
         data_str = data_str.strftime("%d/%m/%Y")
     else:
@@ -250,10 +223,7 @@ def generate_evaluation_pdf(
     # ── Grafico ─────────────────────────────────────────────────────────────
     story.append(Paragraph("Profilo dei Punteggi Aggregati", section_header_style))
 
-    if chart_type == "linear":
-        chart_buf = _make_line_chart(domains)
-    else:
-        chart_buf = _make_bar_chart(domains)
+    chart_buf = _make_bar_chart(domains)
 
     chart_img = RLImage(chart_buf, width=17 * cm, height=6.5 * cm)
     story.append(chart_img)
@@ -318,7 +288,7 @@ def generate_evaluation_pdf(
     story.append(Spacer(1, 0.8 * cm))
     story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER))
     story.append(Paragraph(
-        f"Generato da AutAnalysis il {datetime.utcnow().strftime('%d/%m/%Y %H:%M')} UTC",
+        f"Generato da AutAnalysis il {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M')} UTC",
         ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8,
                        textColor=MID_GREY, fontName='Helvetica', alignment=TA_RIGHT)
     ))

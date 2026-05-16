@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query, status, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
-from typing import List, Literal
+from typing import List
 from bson import ObjectId
 from .models import Scale, Evaluation, Patient, AppSettings, Section, Question, Option, DOMINI_POS, AggregatedEvaluation, EvaluationUpdateRequest
 from .database import evaluations_collection, database, settings_collection
@@ -129,7 +129,7 @@ async def import_scale(file: UploadFile = File(...)):
     scale_id = scala_data.get("id") or f"scale_{uuid.uuid4().hex[:8]}"
     nome = scala_data.get("nome") or "Scala senza nome"
     descrizione = scala_data.get("descrizione") or \
-        f"Importata il {datetime.utcnow().strftime('%Y-%m-%d')}"
+        f"Importata il {datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
 
     # ── Costruzione sezioni ───────────────────────────────────────────────
     sezioni: list[Section] = []
@@ -215,9 +215,8 @@ async def delete_scale(id: str):
 @admin_router.get("/evaluations/{evaluation_id}/pdf", tags=["Admin - Evaluations"])
 async def download_evaluation_pdf(
     evaluation_id: str,
-    chart_type: Literal["linear", "bars"] = Query("bars", description="Tipo di grafico: linear | bars"),
 ):
-    """Genera e scarica il PDF della valutazione con il grafico selezionato."""
+    """Genera e scarica il PDF della valutazione con grafico a barre."""
     eval_doc = await _find_evaluation_document(evaluation_id)
     if not eval_doc:
         raise HTTPException(
@@ -235,10 +234,9 @@ async def download_evaluation_pdf(
         patient=patient_doc or {},
         scale=scale_doc or {},
         domains=domains,
-        chart_type=chart_type,
     )
 
-    filename = f"valutazione_{evaluation_id[:8]}_{chart_type}.pdf"
+    filename = f"valutazione_{evaluation_id[:8]}.pdf"
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",

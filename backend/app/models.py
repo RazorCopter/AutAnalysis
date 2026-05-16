@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 # --- MODELLI ANAGRAFICA (User Models) ---
@@ -58,7 +58,7 @@ class Evaluation(BaseModel):
     id_paziente: str
     anno: int
     id_scala: str
-    data_compilazione: datetime = Field(default_factory=datetime.utcnow)
+    data_compilazione: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     nome_operatore: str
     nome_intervistato: Optional[str] = None
     risposte: List[Answer]
