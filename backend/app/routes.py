@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, status, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from typing import List, Literal
+from bson import ObjectId
 from .models import Scale, Evaluation, Patient, AppSettings, Section, Question, Option, DOMINI_POS, AggregatedEvaluation, EvaluationUpdateRequest
 from .database import evaluations_collection, database, settings_collection
 from .pdf_generator import generate_evaluation_pdf, aggregate_domains
@@ -14,6 +15,22 @@ client_router = APIRouter()
 
 scales_collection = database.get_collection("scales")
 patients_collection = database.get_collection("patients")
+
+
+async def _find_evaluation_document(evaluation_id: str):
+    """Recupera una valutazione supportando sia il campo applicativo che fallback legacy."""
+    eval_doc = await evaluations_collection.find_one({"id_valutazione": evaluation_id})
+    if eval_doc:
+        return eval_doc
+
+    eval_doc = await evaluations_collection.find_one({"id": evaluation_id})
+    if eval_doc:
+        return eval_doc
+
+    if ObjectId.is_valid(evaluation_id):
+        return await evaluations_collection.find_one({"_id": ObjectId(evaluation_id)})
+
+    return None
 
 # ==========================================
 # ADMIN ROUTER (/api/admin)
@@ -251,12 +268,15 @@ async def update_evaluation(evaluation_id: str, payload: EvaluationUpdateRequest
 @admin_router.get("/evaluations/{evaluation_id}/pdf", tags=["Admin - Evaluations"])
 async def download_evaluation_pdf(
     evaluation_id: str,
-    chart_type: Literal["linear", "bars"] = Query(..., description="Tipo di grafico: linear | bars"),
+    chart_type: Literal["linear", "bars"] = Query("bars", description="Tipo di grafico: linear | bars"),
 ):
     """Genera e scarica il PDF della valutazione con il grafico selezionato."""
-    eval_doc = await evaluations_collection.find_one({"id_valutazione": evaluation_id})
+    eval_doc = await _find_evaluation_document(evaluation_id)
     if not eval_doc:
-        raise HTTPException(status_code=404, detail="Valutazione non trovata")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Valutazione non trovata per id '{evaluation_id}'",
+        )
 
     patient_doc = await patients_collection.find_one({"id": eval_doc["id_paziente"]})
     scale_doc   = await scales_collection.find_one({"id": eval_doc["id_scala"]})

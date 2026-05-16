@@ -65,10 +65,10 @@ class Evaluation(BaseModel):
 # --- MODELLI AGGREGAZIONE E PDF ---
 
 DOMINI_POS = {
-    "SP": "Sviluppo Personale",
-    "AD": "Autodeterminazione",
-    "RI": "Relazioni Interpersonali",
-    "IS": "Inclusione Sociale",
+    "SP": "Social Partecipazione",
+    "AD": "Attività Domestiche",
+    "RI": "Risorse Inclusive",
+    "IS": "Istruzione/Scuola",
     "D":  "Diritti",
     "BE": "Benessere Emotivo",
     "BF": "Benessere Fisico",
