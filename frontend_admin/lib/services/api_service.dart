@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
 import '../models/scale_model.dart';
 import '../models/patient_model.dart';
+import '../models/evaluation_model.dart';
 
 class ApiService {
   // Dato che questo frontend è servito da Nginx sulla stessa origine e proxy verso backend,
@@ -157,6 +158,60 @@ class ApiService {
     } catch (e) {
       print('Errore eliminazione paziente: $e');
       return false;
+    }
+  }
+
+  // --- VALUTAZIONI AGGREGATE ---
+
+  Future<AggregatedEvaluation?> getAggregatedEvaluation(
+      String patientId, String scaleId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/evaluations/$patientId/$scaleId'),
+      );
+      if (response.statusCode == 200) {
+        return AggregatedEvaluation.fromJson(jsonDecode(response.body));
+      }
+      return null;
+    } catch (e) {
+      print('Errore caricamento valutazione aggregata: $e');
+      return null;
+    }
+  }
+
+  Future<AggregatedEvaluation?> updateEvaluationAnswers(
+      String evaluationId, List<AnswerModel> risposte) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/evaluations/$evaluationId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'risposte': risposte.map((r) => r.toJson()).toList(),
+        }),
+      );
+      if (response.statusCode == 200) {
+        return AggregatedEvaluation.fromJson(jsonDecode(response.body));
+      }
+      return null;
+    } catch (e) {
+      print('Errore aggiornamento valutazione: $e');
+      return null;
+    }
+  }
+
+  Future<List<int>?> downloadEvaluationPdf(
+      String evaluationId, String chartType) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/evaluations/$evaluationId/pdf?chart_type=$chartType'),
+      );
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      }
+      return null;
+    } catch (e) {
+      print('Errore download PDF: $e');
+      return null;
     }
   }
 }
