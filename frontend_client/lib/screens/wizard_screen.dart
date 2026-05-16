@@ -233,14 +233,16 @@ class _WizardScreenState extends State<WizardScreen> {
                   return Padding(
                     padding: const EdgeInsets.all(32.0),
                     child: Center(
-                      child: Text(
-                        q.domanda.testoDomanda,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
-                          height: 1.4,
+                      child: SingleChildScrollView(
+                        child: Text(
+                          q.domanda.testoDomanda,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                            height: 1.4,
+                          ),
                         ),
                       ),
                     ),
@@ -249,44 +251,19 @@ class _WizardScreenState extends State<WizardScreen> {
               ),
             ),
 
-            // Input: Bottoni di risposta (1, 2, 3)
+            // Input: Bottoni di risposta dinamici
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildScoreButton(1, '1', AppTheme.errorColor),
-                  const SizedBox(width: 16),
-                  _buildScoreButton(2, '2', AppTheme.secondaryColor),
-                  const SizedBox(width: 16),
-                  _buildScoreButton(3, '3', const Color(0xFF43A047)),
-                ],
+              child: ListView(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: currentQ.domanda.opzioni.map((opt) {
+                  return _buildScoreButton(opt.punteggio, opt.testoRisposta, AppTheme.primaryColor);
+                }).toList(),
               ),
             ),
             
-            const SizedBox(height: 32),
-
-            // Legenda
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE8EEF8)),
-              ),
-              child: const Column(
-                children: [
-                  Text('3: Sempre / Pienamente Autonomo', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
-                  SizedBox(height: 4),
-                  Text('2: A volte / Con aiuto (Prompting)', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
-                  SizedBox(height: 4),
-                  Text('1: Mai / Non Autonomo', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
 
             // Navigazione: Indietro / Avanti
             Padding(
@@ -317,43 +294,69 @@ class _WizardScreenState extends State<WizardScreen> {
     );
   }
 
-  Widget _buildScoreButton(int score, String label, Color color) {
+  Widget _buildScoreButton(int score, String text, Color color) {
     final currentQId = _questions[_currentIndex].domanda.idDomanda;
     final isSelected = _answers[currentQId] == score;
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _answers[currentQId] = score;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          color: isSelected ? color : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isSelected ? color : const Color(0xFFE8EEF8),
-            width: 2,
-          ),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: color.withValues(alpha: 0.3),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            )
-          ] : [],
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: isSelected ? Colors.white : color,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _answers[currentQId] = score;
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+          decoration: BoxDecoration(
+            color: isSelected ? color : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isSelected ? color : const Color(0xFFE8EEF8),
+              width: 2,
             ),
+            boxShadow: isSelected ? [
+              BoxShadow(
+                color: color.withValues(alpha: 0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              )
+            ] : [],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.white.withValues(alpha: 0.2) : color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    score.toString(),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.white : color,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.white : AppTheme.textPrimary,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

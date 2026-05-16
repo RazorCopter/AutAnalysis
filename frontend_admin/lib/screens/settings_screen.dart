@@ -15,6 +15,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   
   bool _isLoading = false;
   String? _uploadStatus;
+  String _selectedScaleType = 'POS';
+
+  final List<String> _scaleTypes = [
+    'POS',
+    'San Martin',
+    'Griglia Autonomia ODFLAB',
+    'ABS',
+    'Scala Osservativa ODFLAB'
+  ];
 
   @override
   void initState() {
@@ -44,14 +53,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _uploadStatus = 'Caricamento in corso...';
       });
 
-      final success = await _apiService.uploadProtocolCSV(result.files.single);
+      final success = await _apiService.uploadProtocolCSV(
+        result.files.single,
+        scaleType: _selectedScaleType,
+      );
 
       setState(() {
         _isLoading = false;
         if (success) {
           _uploadStatus = 'Protocollo caricato con successo!';
         } else {
-          _uploadStatus = 'Errore durante il caricamento del file.';
+          _uploadStatus = 'Errore durante il caricamento o formato non ancora supportato.';
         }
       });
     }
@@ -88,18 +100,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   const Text('Protocolli Clinici', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  const Text('Importa le scale di valutazione da file CSV. I nuovi protocolli verranno aggiunti all\'elenco di quelli gestibili.'),
+                  const Text('Importa le scale di valutazione da file CSV. Scegli il profilo di importazione corretto prima di caricare il file.'),
+                  const SizedBox(height: 16),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          decoration: const InputDecoration(
+                            labelText: 'Profilo di Importazione',
+                            border: OutlineInputBorder(),
+                          ),
+                          initialValue: _selectedScaleType,
+                          items: _scaleTypes.map((type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          )).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _selectedScaleType = val);
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      SizedBox(
+                        height: 56, // Match DropdownButtonFormField height roughly
+                        child: ElevatedButton.icon(
+                          onPressed: _isLoading ? null : _pickAndUploadCSV,
+                          icon: const Icon(Icons.upload_file),
+                          label: const Text('Carica Protocollo CSV'),
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      ElevatedButton.icon(
-                        onPressed: _isLoading ? null : _pickAndUploadCSV,
-                        icon: const Icon(Icons.upload_file),
-                        label: const Text('Carica Protocollo CSV'),
-                      ),
-                      const SizedBox(width: 16),
                       if (_isLoading) const CircularProgressIndicator(),
-                      if (_uploadStatus != null && !_isLoading) 
+                      if (_isLoading) const SizedBox(width: 16),
+                      if (_uploadStatus != null) 
                         Expanded(child: Text(_uploadStatus!, style: TextStyle(color: _uploadStatus!.contains('Errore') ? Colors.red : Colors.green))),
                     ],
                   ),
