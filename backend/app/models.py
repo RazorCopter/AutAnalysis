@@ -21,10 +21,15 @@ class AppSettings(BaseModel):
 
 # --- MODELLI SCALA (Scale Models) ---
 
+class Option(BaseModel):
+    testo_risposta: str
+    punteggio: int
+
 class Question(BaseModel):
     id_domanda: str
+    codice: Optional[str] = None
     testo_domanda: str
-    tipo_risposta: str = "rating_1_to_5"
+    opzioni: List[Option] = []
 
 class Section(BaseModel):
     titolo_sezione: str

@@ -11,13 +11,15 @@ class ApiService {
   // Assumiamo che in produzione sia /api/admin.
   static const String baseUrl = 'https://aut.ghome.it/api/admin';
 
-  Future<bool> uploadProtocolCSV(PlatformFile file) async {
+  Future<bool> uploadProtocolCSV(PlatformFile file, {String scaleType = 'POS'}) async {
     try {
       final request = http.MultipartRequest(
         'POST',
         Uri.parse('$baseUrl/import-scale'),
       );
       
+      request.fields['scale_type'] = scaleType;
+
       // In Flutter Web, il file ha i bytes esposti direttamente se letto con withData: true
       if (file.bytes != null) {
         request.files.add(http.MultipartFile.fromBytes(

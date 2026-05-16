@@ -14,18 +14,34 @@ class PatientModel {
   }
 }
 
+class OptionModel {
+  final String testoRisposta;
+  final int punteggio;
+
+  OptionModel({required this.testoRisposta, required this.punteggio});
+
+  factory OptionModel.fromJson(Map<String, dynamic> json) {
+    return OptionModel(
+      testoRisposta: json['testo_risposta'] ?? '',
+      punteggio: json['punteggio'] ?? 0,
+    );
+  }
+}
+
 class QuestionModel {
   final String idDomanda;
+  final String? codice;
   final String testoDomanda;
-  final String tipoRisposta;
+  final List<OptionModel> opzioni;
 
-  QuestionModel({required this.idDomanda, required this.testoDomanda, required this.tipoRisposta});
+  QuestionModel({required this.idDomanda, this.codice, required this.testoDomanda, required this.opzioni});
 
   factory QuestionModel.fromJson(Map<String, dynamic> json) {
     return QuestionModel(
       idDomanda: json['id_domanda'] ?? '',
+      codice: json['codice'],
       testoDomanda: json['testo_domanda'] ?? '',
-      tipoRisposta: json['tipo_risposta'] ?? '',
+      opzioni: (json['opzioni'] as List?)?.map((e) => OptionModel.fromJson(e)).toList() ?? [],
     );
   }
 }

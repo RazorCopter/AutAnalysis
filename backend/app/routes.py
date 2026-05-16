@@ -58,9 +58,14 @@ async def get_evaluations(id_patient: str):
     return evaluations
 
 @admin_router.post("/import-scale", tags=["Admin - Configuration"])
-async def import_scale(file: UploadFile = File(...)):
+async def import_scale(file: UploadFile = File(...), scale_type: str = Form(...)):
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="Il file deve essere un CSV")
+    
+    if scale_type in ["San Martin", "Griglia Autonomia ODFLAB", "ABS", "Scala Osservativa ODFLAB"]:
+        raise HTTPException(status_code=501, detail="Template di import per questa scala in fase di sviluppo")
+    elif scale_type != "POS":
+        raise HTTPException(status_code=400, detail="Tipo scala non supportato")
     
     content = await file.read()
     decoded = content.decode('utf-8-sig').splitlines()
@@ -73,10 +78,12 @@ async def import_scale(file: UploadFile = File(...)):
     current_section = None
 
     for row in reader:
-        if not row or len(row) < 2: continue
-        tipo = row[0].strip().upper()
-        testo = row[1].strip()
-        descrizione = row[2].strip() if len(row) > 2 else ""
+        if not row or len(row) < 3: continue
+        
+        # Formato POS: CODICE, TIPO, TESTO, OPZIONE_3, OPZIONE_2, OPZIONE_1
+        codice = row[0].strip()
+        tipo = row[1].strip().upper()
+        testo = row[2].strip()
 
         if tipo == "SCALA":
             if current_scale:
@@ -87,17 +94,16 @@ async def import_scale(file: UploadFile = File(...)):
             current_scale = Scale(
                 id=f"scale_{uuid.uuid4().hex[:8]}",
                 nome=testo,
-                descrizione=descrizione or f"Importata il {datetime.utcnow().strftime('%Y-%m-%d')}",
+                descrizione=f"Importata il {datetime.utcnow().strftime('%Y-%m-%d')}",
                 sezioni=[]
             )
             current_section = None
             
         elif tipo == "SEZIONE":
             if not current_scale:
-                # Crea scala di default se manca
                 current_scale = Scale(
                     id=f"scale_{uuid.uuid4().hex[:8]}",
-                    nome="Nuovo Protocollo",
+                    nome="Nuovo Protocollo POS",
                     descrizione=f"Importata il {datetime.utcnow().strftime('%Y-%m-%d')}",
                     sezioni=[]
                 )
@@ -109,17 +115,26 @@ async def import_scale(file: UploadFile = File(...)):
             if not current_scale:
                 current_scale = Scale(
                     id=f"scale_{uuid.uuid4().hex[:8]}",
-                    nome="Nuovo Protocollo",
+                    nome="Nuovo Protocollo POS",
                     descrizione=f"Importata il {datetime.utcnow().strftime('%Y-%m-%d')}",
                     sezioni=[]
                 )
             if not current_section:
                 current_section = Section(titolo_sezione="Generale", domande=[])
             
+            opzioni = []
+            if len(row) > 3 and row[3].strip():
+                opzioni.append({"testo_risposta": row[3].strip(), "punteggio": 3})
+            if len(row) > 4 and row[4].strip():
+                opzioni.append({"testo_risposta": row[4].strip(), "punteggio": 2})
+            if len(row) > 5 and row[5].strip():
+                opzioni.append({"testo_risposta": row[5].strip(), "punteggio": 1})
+            
             domanda = Question(
                 id_domanda=f"q_{uuid.uuid4().hex[:8]}",
+                codice=codice if codice else None,
                 testo_domanda=testo,
-                tipo_risposta=descrizione if descrizione else "rating_1_to_5"
+                opzioni=opzioni
             )
             current_section.domande.append(domanda)
 
@@ -132,7 +147,7 @@ async def import_scale(file: UploadFile = File(...)):
     if not scales_to_import:
         raise HTTPException(status_code=400, detail="Nessun dato valido trovato nel CSV")
 
-    # Inserimento nel DB (non cancelliamo più tutto, aggiungiamo)
+    # Inserimento nel DB
     for s in scales_to_import:
         await scales_collection.insert_one(s.model_dump())
     

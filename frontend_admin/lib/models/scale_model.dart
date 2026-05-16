@@ -1,26 +1,49 @@
+class Option {
+  final String testoRisposta;
+  final int punteggio;
+
+  Option({required this.testoRisposta, required this.punteggio});
+
+  factory Option.fromJson(Map<String, dynamic> json) {
+    return Option(
+      testoRisposta: json['testo_risposta'] ?? '',
+      punteggio: json['punteggio'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'testo_risposta': testoRisposta,
+    'punteggio': punteggio,
+  };
+}
+
 class Question {
   final String idDomanda;
+  final String? codice;
   final String testoDomanda;
-  final String tipoRisposta;
+  final List<Option> opzioni;
 
   Question({
     required this.idDomanda,
+    this.codice,
     required this.testoDomanda,
-    required this.tipoRisposta,
+    required this.opzioni,
   });
 
   factory Question.fromJson(Map<String, dynamic> json) {
     return Question(
       idDomanda: json['id_domanda'],
+      codice: json['codice'],
       testoDomanda: json['testo_domanda'],
-      tipoRisposta: json['tipo_risposta'],
+      opzioni: (json['opzioni'] as List?)?.map((e) => Option.fromJson(e)).toList() ?? [],
     );
   }
 
   Map<String, dynamic> toJson() => {
     'id_domanda': idDomanda,
+    'codice': codice,
     'testo_domanda': testoDomanda,
-    'tipo_risposta': tipoRisposta,
+    'opzioni': opzioni.map((e) => e.toJson()).toList(),
   };
 }
 

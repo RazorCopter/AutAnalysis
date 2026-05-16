@@ -464,7 +464,7 @@ class _ProtocolsScreenState extends State<ProtocolsScreen> {
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
-          question.tipoRisposta,
+          question.opzioni.isNotEmpty ? '${question.opzioni.length} opzioni' : 'N/A',
           style: const TextStyle(fontSize: 10, color: AppTheme.primaryColor, fontWeight: FontWeight.w700),
         ),
       ),
