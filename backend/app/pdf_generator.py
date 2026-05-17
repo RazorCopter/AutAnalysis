@@ -130,8 +130,8 @@ def generate_evaluation_pdf(
         pagesize=A4,
         leftMargin=1.8 * cm,
         rightMargin=1.8 * cm,
-        topMargin=2 * cm,
-        bottomMargin=2 * cm,
+        topMargin=1.2 * cm,
+        bottomMargin=1.2 * cm,
     )
 
     styles = getSampleStyleSheet()
@@ -179,9 +179,8 @@ def generate_evaluation_pdf(
     )
 
     # ── Header ─────────────────────────────────────────────────────────────
-    story.append(Paragraph("AutAnalysis", title_style))
-    story.append(Paragraph("Report di Valutazione Clinica", subtitle_style))
-    story.append(HRFlowable(width="100%", thickness=1, color=BORDER, spaceAfter=14))
+    story.append(Paragraph("Report Valutativo", title_style))
+    story.append(HRFlowable(width="100%", thickness=1, color=BORDER, spaceBefore=4, spaceAfter=10))
 
     # ── Info paziente / valutazione ─────────────────────────────────────────
     nome_paziente = f"{patient.get('nome', '')} {patient.get('cognome', '')}"
@@ -217,16 +216,16 @@ def generate_evaluation_pdf(
         ('ROUNDEDCORNERS', [4]),
     ]))
     story.append(meta_table)
-    story.append(Spacer(1, 0.4 * cm))
+    story.append(Spacer(1, 0.3 * cm))
 
     # ── Grafico ─────────────────────────────────────────────────────────────
     story.append(Paragraph("Profilo dei Punteggi Aggregati", section_header_style))
 
     chart_buf = _make_bar_chart(domains)
 
-    chart_img = RLImage(chart_buf, width=17 * cm, height=9.5 * cm)
+    chart_img = RLImage(chart_buf, width=17 * cm, height=8.2 * cm)
     story.append(chart_img)
-    story.append(Spacer(1, 0.4 * cm))
+    story.append(Spacer(1, 0.3 * cm))
 
     # ── Tabella aggregata domìni ─────────────────────────────────────────────
     story.append(Paragraph("Riepilogo per Dominio", section_header_style))
@@ -252,7 +251,7 @@ def generate_evaluation_pdf(
         ('LEFTPADDING',  (0, 0), (-1, -1), 6),
     ]))
     story.append(domain_table)
-    story.append(Spacer(1, 0.5 * cm))
+    story.append(Spacer(1, 0.3 * cm))
 
     # ── Tabella dettaglio risposte (sempre a partire da pagina 2) ────────────
     story.append(PageBreak())
