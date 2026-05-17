@@ -179,9 +179,19 @@ async def import_scale(file: UploadFile = File(...)):
         sezioni=sezioni,
     )
 
-    # Upsert: se esiste già una scala con lo stesso id, la sostituisce
+    scale_dict = scale.model_dump()
+
+    extra_keys = {"scoring_tables", "struttura_punteggi", "profilo_grafico",
+                  "note_operative", "proprieta_psicometriche",
+                  "autori", "anno", "editore", "versione_italiana",
+                  "target", "eta", "informatori", "tempo_somministrazione",
+                  "sottotitolo"}
+    for key in extra_keys:
+        if key in scala_data:
+            scale_dict[key] = scala_data[key]
+
     await scales_collection.replace_one(
-        {"id": scale_id}, scale.model_dump(), upsert=True
+        {"id": scale_id}, scale_dict, upsert=True
     )
 
     total_questions = sum(len(s.domande) for s in sezioni)
@@ -197,6 +207,15 @@ async def import_scale(file: UploadFile = File(...)):
 @admin_router.put("/scales/{id}", response_model=Scale, tags=["Admin - Configuration"])
 async def update_scale(id: str, scale: Scale):
     scale_dict = scale.model_dump()
+    existing = await scales_collection.find_one({"id": id})
+    if existing:
+        for key in ("scoring_tables", "struttura_punteggi", "profilo_grafico",
+                     "note_operative", "proprieta_psicometriche",
+                     "autori", "anno", "editore", "versione_italiana",
+                     "target", "eta", "informatori", "tempo_somministrazione",
+                     "sottotitolo"):
+            if key in existing:
+                scale_dict[key] = existing[key]
     result = await scales_collection.replace_one({"id": id}, scale_dict)
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Protocollo non trovato")

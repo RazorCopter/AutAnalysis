@@ -87,6 +87,9 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     if (_eval == null) return;
     setState(() => _isLoadingAnalysis = true);
     final analysis = await _api.getEvaluationAnalysis(_eval!.idValutazione);
+    print("DEBUG AUTANALYSIS - Scala: ${widget.scale.nome}");
+    print("DEBUG AUTANALYSIS - indiceQv: ${analysis?.indiceQv}, percentile: ${analysis?.percentile}");
+    print("DEBUG AUTANALYSIS - domini: ${analysis?.domini.map((d) => '${d.codice}=std:${d.punteggioStandard}/raw:${d.punteggioDiretto}').join(', ')}");
     if (mounted) {
       setState(() {
         _analysis = analysis;
@@ -420,17 +423,24 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
 
   // ─── Card Grafico ──────────────────────────────────────────────────────────
   Widget _buildChartCard() {
+    final hasAnalysis = _analysis != null && _analysis!.domini.isNotEmpty;
+    final useStandard = hasAnalysis && _analysis!.indiceQv != null;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Profilo Punteggi Standard per Dominio',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+            Text(
+              useStandard ? 'Profilo Punteggi Standard per Dominio' : 'Profilo Punteggi per Dominio',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            ),
             const SizedBox(height: 4),
-            const Text('Scala 1–20 · Media=10 · DS=3',
-                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+            Text(
+              useStandard ? 'Scala 1–20 · Media=10 · DS=3' : 'Punteggio grezzo per dominio',
+              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            ),
             const SizedBox(height: 24),
             if (_isLoadingAnalysis)
               const SizedBox(
