@@ -153,9 +153,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     final day = local.day.toString().padLeft(2, '0');
     final month = local.month.toString().padLeft(2, '0');
     final year = local.year.toString();
-    final hour = local.hour.toString().padLeft(2, '0');
-    final minute = local.minute.toString().padLeft(2, '0');
-    return '$day/$month/$year $hour:$minute';
+    return '$day/$month/$year';
   }
 
   AppBar _buildAppBar() {
@@ -301,7 +299,6 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
             _metaItem('Paziente', '${widget.patient.nome} ${widget.patient.cognome}'),
             _metaItem('Scala', widget.scale.nome),
             _metaItem('Data', _formatEvaluationDate(e.dataCompilazione)),
-            _metaItem('Anno', e.anno.toString()),
             _metaItem('Operatore', e.nomeOperatore),
             if (e.nomeIntervistato != null && e.nomeIntervistato!.isNotEmpty)
               _metaItem('Intervistato/a', e.nomeIntervistato!),
