@@ -59,10 +59,15 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
           _analysis!.percentile != null ||
           (_analysis!.fasciaQv?.isNotEmpty ?? false));
 
+  bool get _forceSanMartinLayout => _isSanMartinScale || _hasQvSummary;
+
+  bool get _shouldUseSanMartinUi =>
+      _forceSanMartinLayout || _showSanMartinProfile;
+
   bool get _showSanMartinProfile =>
       _analysis != null &&
       _analysis!.domini.isNotEmpty &&
-      (_isSanMartinScale || _hasQvSummary || _hasStandardProfile);
+      (_forceSanMartinLayout || _hasStandardProfile);
 
   @override
   void initState() {
@@ -107,12 +112,43 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
   Future<void> _loadAnalysis() async {
     if (_eval == null) return;
     setState(() => _isLoadingAnalysis = true);
-    final analysis = await _api.getEvaluationAnalysis(_eval!.idValutazione);
-    if (mounted) {
-      setState(() {
-        _analysis = analysis;
-        _isLoadingAnalysis = false;
-      });
+    try {
+      print('DEBUG AUTANALYSIS - loadAnalysis start: evaluation=${_eval!.idValutazione}');
+      print('DEBUG AUTANALYSIS - scale widget name: ${widget.scale.nome}');
+
+      final analysis = await _api.getEvaluationAnalysis(_eval!.idValutazione);
+
+      print('DEBUG AUTANALYSIS - analysis loaded: ${analysis != null}');
+      if (analysis != null) {
+        print('DEBUG AUTANALYSIS - scalaNome: ${analysis.scalaNome}');
+        print('DEBUG AUTANALYSIS - indiceQv: ${analysis.indiceQv}');
+        print('DEBUG AUTANALYSIS - percentile: ${analysis.percentile}');
+        print('DEBUG AUTANALYSIS - fasciaQv: ${analysis.fasciaQv}');
+        print('DEBUG AUTANALYSIS - sommaPunteggiStandard: ${analysis.sommaPunteggiStandard}');
+        print('DEBUG AUTANALYSIS - domini: ${analysis.domini.map((d) => '${d.codice}[raw=${d.punteggioDiretto},std=${d.punteggioStandard}]').join(', ')}');
+      } else {
+        print('DEBUG AUTANALYSIS - analysis is null');
+      }
+
+      if (mounted) {
+        setState(() {
+          _analysis = analysis;
+        });
+      }
+    } catch (e, stackTrace) {
+      print('DEBUG AUTANALYSIS - loadAnalysis error: $e');
+      print('DEBUG AUTANALYSIS - loadAnalysis stackTrace: $stackTrace');
+      if (mounted) {
+        setState(() {
+          _analysis = null;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingAnalysis = false;
+        });
+      }
     }
   }
 
@@ -277,8 +313,8 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
             children: [
               _buildHistoryCard(),
               const SizedBox(height: 20),
-              if (_showSanMartinProfile) ...[
-                _buildQvSummaryCard(),
+              if (_shouldUseSanMartinUi) ...[
+                _buildSanMartinSummarySection(),
                 const SizedBox(height: 20),
               ],
               _buildMetaCard(),
@@ -509,6 +545,44 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     );
   }
 
+  Widget _buildSanMartinSummarySection() {
+    if (_isLoadingAnalysis) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: 12),
+              Text(
+                'Caricamento riepilogo psicometrico San Martin...',
+                style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_analysis == null) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'Analisi San Martin non disponibile. Controlla i log DEBUG AUTANALYSIS per verificare payload e parsing.',
+            style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+          ),
+        ),
+      );
+    }
+
+    return _buildQvSummaryCard();
+  }
+
   Widget _summaryMetric({
     required String title,
     required String value,
@@ -565,7 +639,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
   }
   Widget _buildChartCard() {
     final hasAnalysis = _analysis != null && _analysis!.domini.isNotEmpty;
-    final useRadar = hasAnalysis && _showSanMartinProfile;
+    final useRadar = hasAnalysis && _shouldUseSanMartinUi;
 
     return Card(
       child: Padding(
@@ -591,6 +665,17 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
               const SizedBox(
                 height: 400,
                 child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_shouldUseSanMartinUi && !hasAnalysis)
+              const SizedBox(
+                height: 220,
+                child: Center(
+                  child: Text(
+                    'Contesto San Martin rilevato, ma l\'analisi non contiene ancora i dati necessari per il radar.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+                  ),
+                ),
               )
             else
               SizedBox(
@@ -855,7 +940,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
             const Text('Riepilogo per Dominio',
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
             const SizedBox(height: 16),
-            if (!_showSanMartinProfile)
+            if (!_shouldUseSanMartinUi)
               const Padding(
                 padding: EdgeInsets.only(bottom: 12),
                 child: Text(
@@ -885,7 +970,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
   }
 
   List<DataRow> _buildDomainRows() {
-    if (_showSanMartinProfile && _analysis != null) {
+    if (_shouldUseSanMartinUi && _analysis != null) {
       return _analysis!.domini.asMap().entries.map((entry) {
         final index = entry.key;
         final domain = entry.value;

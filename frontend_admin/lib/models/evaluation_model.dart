@@ -1,3 +1,12 @@
+int? _parseNullableInt(dynamic value) {
+  if (value == null) return null;
+  try {
+    return num.parse(value.toString()).toInt();
+  } catch (_) {
+    return null;
+  }
+}
+
 class AnswerModel {
   final String codiceDomanda;
   int punteggio;
@@ -41,8 +50,8 @@ class DomainScore {
     return DomainScore(
       codice: json['codice'] ?? '',
       etichetta: json['etichetta'] ?? '',
-      punteggio: (json['punteggio_totale'] as num?)?.toInt() ?? 0,
-      numDomande: (json['num_domande'] as num?)?.toInt() ?? 0,
+      punteggio: _parseNullableInt(json['punteggio_totale']) ?? 0,
+      numDomande: _parseNullableInt(json['num_domande']) ?? 0,
     );
   }
 }
@@ -70,11 +79,11 @@ class DomainAnalysis {
     return DomainAnalysis(
       codice: json['codice'] ?? '',
       etichetta: json['etichetta'] ?? '',
-      punteggioDiretto: (json['punteggio_diretto'] as num?)?.toInt() ?? 0,
-      punteggioStandard: (json['punteggio_standard'] as num?)?.toInt(),
-      percentileDominio: (json['percentile_dominio'] as num?)?.toInt(),
+      punteggioDiretto: _parseNullableInt(json['punteggio_diretto']) ?? 0,
+      punteggioStandard: _parseNullableInt(json['punteggio_standard']),
+      percentileDominio: _parseNullableInt(json['percentile_dominio']),
       fascia: json['fascia'] as String?,
-      numDomande: (json['num_domande'] as num?)?.toInt() ?? 0,
+      numDomande: _parseNullableInt(json['num_domande']) ?? 0,
     );
   }
 }
@@ -108,9 +117,9 @@ class PsychometricAnalysis {
       idPaziente: json['id_paziente'] ?? '',
       idScala: json['id_scala'] ?? '',
       scalaNome: json['scala_nome'] ?? '',
-      sommaPunteggiStandard: (json['somma_punteggi_standard'] as num?)?.toInt(),
-      indiceQv: (json['indice_qv'] as num?)?.toInt(),
-      percentile: (json['percentile'] as num?)?.toInt(),
+      sommaPunteggiStandard: _parseNullableInt(json['somma_punteggi_standard']),
+      indiceQv: _parseNullableInt(json['indice_qv']),
+      percentile: _parseNullableInt(json['percentile']),
       fasciaQv: json['fascia_qv'] as String?,
       domini: (json['domini'] as List?)
               ?.map((e) => DomainAnalysis.fromJson(e as Map<String, dynamic>))
@@ -148,7 +157,7 @@ class AggregatedEvaluation {
       idValutazione: json['id_valutazione'] ?? '',
       idPaziente: json['id_paziente'] ?? '',
       idScala: json['id_scala'] ?? '',
-      anno: (json['anno'] as num?)?.toInt() ?? 0,
+      anno: _parseNullableInt(json['anno']) ?? 0,
       dataCompilazione: json['data_compilazione']?.toString() ?? '',
       nomeOperatore: json['nome_operatore'] ?? '',
       nomeIntervistato: json['nome_intervistato'] as String?,

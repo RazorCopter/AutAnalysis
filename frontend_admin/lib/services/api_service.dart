@@ -220,12 +220,17 @@ class ApiService {
       final response = await http.get(
         Uri.parse('$baseUrl/evaluations/$evaluationId/analysis'),
       );
+      print('DEBUG AUTANALYSIS API - analysis status: ${response.statusCode}');
       if (response.statusCode == 200) {
-        return PsychometricAnalysis.fromJson(jsonDecode(response.body));
+        print('DEBUG AUTANALYSIS API - analysis body: ${response.body}');
+        final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+        return PsychometricAnalysis.fromJson(decoded);
       }
+      print('DEBUG AUTANALYSIS API - analysis request failed: ${response.body}');
       return null;
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('Errore caricamento analisi: $e');
+      print('Stack caricamento analisi: $stackTrace');
       return null;
     }
   }
