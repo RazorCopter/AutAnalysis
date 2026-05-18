@@ -7,6 +7,34 @@ con semplice aggregazione per dominio.
 
 from typing import Any, Dict, List, Optional
 
+SAN_MARTIN_STANDARD_SCORE_RANGES: Dict[str, List[tuple[int, int, int]]] = {
+    "AU": [(48, 48, 17), (46, 47, 16), (43, 45, 15), (41, 42, 14), (39, 40, 13),
+           (36, 38, 12), (34, 35, 11), (31, 33, 10), (29, 30, 9), (27, 28, 8),
+           (24, 26, 7), (22, 23, 6), (20, 21, 5), (17, 19, 4), (15, 16, 3),
+           (13, 14, 2), (0, 13, 1)],
+    "BE": [(47, 48, 15), (45, 46, 14), (43, 44, 13), (41, 42, 12), (38, 40, 11),
+           (36, 37, 10), (34, 35, 9), (32, 33, 8), (30, 31, 7), (27, 29, 6),
+           (25, 26, 5), (23, 24, 4), (21, 22, 3), (19, 20, 2), (0, 19, 1)],
+    "BF": [(48, 48, 15), (46, 47, 14), (44, 45, 13), (42, 43, 12), (40, 41, 11),
+           (38, 39, 10), (36, 37, 9), (34, 35, 8), (32, 33, 7), (30, 31, 6),
+           (28, 29, 5), (26, 27, 4), (24, 25, 3), (22, 23, 2), (0, 21, 1)],
+    "BM": [(48, 48, 14), (46, 47, 13), (44, 45, 12), (42, 43, 11), (40, 41, 10),
+           (38, 39, 9), (36, 37, 8), (34, 35, 7), (32, 33, 6), (30, 31, 5),
+           (28, 29, 4), (25, 27, 3), (23, 24, 2), (0, 22, 1)],
+    "DI": [(48, 48, 15), (46, 47, 14), (44, 45, 13), (43, 43, 12), (41, 42, 11),
+           (39, 40, 10), (37, 38, 9), (36, 36, 8), (34, 35, 7), (32, 33, 6),
+           (30, 31, 5), (29, 29, 4), (27, 28, 3), (25, 26, 2), (0, 24, 1)],
+    "SP": [(47, 48, 15), (45, 46, 14), (42, 44, 13), (40, 41, 12), (37, 39, 11),
+           (35, 36, 10), (32, 34, 9), (30, 31, 8), (27, 29, 7), (25, 26, 6),
+           (22, 24, 5), (20, 21, 4), (17, 19, 3), (15, 16, 2), (0, 14, 1)],
+    "IS": [(43, 44, 15), (40, 42, 14), (38, 39, 13), (35, 37, 12), (33, 34, 11),
+           (30, 32, 10), (28, 29, 9), (25, 27, 8), (23, 24, 7), (20, 22, 6),
+           (18, 19, 5), (15, 17, 4), (13, 14, 3), (11, 12, 2), (0, 10, 1)],
+    "RI": [(47, 48, 15), (45, 46, 14), (43, 44, 13), (41, 42, 12), (39, 40, 11),
+           (36, 38, 10), (34, 35, 9), (32, 33, 8), (30, 31, 7), (27, 29, 6),
+           (25, 26, 5), (23, 24, 4), (21, 22, 3), (19, 20, 2), (0, 18, 1)],
+}
+
 
 def build_domain_map(scale_doc: dict) -> Dict[str, str]:
     """Costruisce la mappa {codice_dominio: nome_dominio} da un documento Scale."""
@@ -74,6 +102,18 @@ def _get_domain_conversion_table(
     return domini_12
 
 
+def _lookup_standard_score_from_matrix(domain_code: str, raw_score: int) -> Optional[int]:
+    """Calcola il punteggio standard usando la matrice specifica per dominio."""
+    ranges = SAN_MARTIN_STANDARD_SCORE_RANGES.get(domain_code.upper())
+    if not ranges:
+        return None
+
+    for min_score, max_score, standard_score in ranges:
+        if min_score <= raw_score <= max_score:
+            return standard_score
+    return None
+
+
 def _lookup_conversion_entry(
     score: int,
     table_section: Dict[str, Any],
@@ -138,8 +178,10 @@ def _build_domain_analyses(
             score=raw_score,
             table_section=table_section,
         ) or {}
-        standard_score = entry.get("std")
         percentile = entry.get("perc")
+        standard_score = _lookup_standard_score_from_matrix(domain_code, raw_score)
+        if standard_score is None:
+            standard_score = entry.get("std")
         fascia = _std_to_fascia(standard_score) if standard_score is not None else None
 
         print(
