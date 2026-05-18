@@ -5,7 +5,7 @@ Supporta sia scale con tabelle di conversione (San Martín) sia scale semplici (
 con semplice aggregazione per dominio.
 """
 
-from typing import List, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 
 def build_domain_map(scale_doc: dict) -> Dict[str, str]:
@@ -56,6 +56,69 @@ def _std_to_fascia(std: int) -> str:
         return "Molto Alto"
 
 
+def _get_domain_conversion_table(
+    domain_code: str,
+    num_domande: int,
+    table_a: Dict[str, Any],
+) -> Dict[str, dict]:
+    """Seleziona la tabella di conversione corretta per il dominio corrente."""
+    domini_12 = table_a.get("domini_con_12_item", {})
+    dominio_11 = table_a.get("dominio_IS_con_11_item", {})
+
+    conv_12 = domini_12.get("conversione", {})
+    conv_11 = dominio_11.get("conversione", {})
+
+    # San Martín ha 7 domini da 12 item e un dominio da 11 item.
+    # Privilegiamo il numero di item effettivamente aggregati, con fallback sul codice.
+    if num_domande == 11 and conv_11:
+        return conv_11
+    if domain_code.upper() == "IS" and conv_11:
+        return conv_11
+    return conv_12
+
+
+def _build_domain_analyses(
+    direct_scores: List[dict],
+    table_a: Dict[str, Any],
+) -> tuple[List[dict], Optional[int]]:
+    """Converte i punteggi grezzi di dominio in punteggi standard."""
+    domain_analyses: List[dict] = []
+    total_standard = 0
+    has_any_standard_score = False
+
+    for domain in direct_scores:
+        raw_score = domain["punteggio_totale"]
+        domain_code = domain["codice"]
+        num_domande = domain["num_domande"]
+
+        conversion_table = _get_domain_conversion_table(
+            domain_code=domain_code,
+            num_domande=num_domande,
+            table_a=table_a,
+        )
+
+        entry = conversion_table.get(str(raw_score), {})
+        standard_score = entry.get("std")
+        percentile = entry.get("perc")
+        fascia = _std_to_fascia(standard_score) if standard_score is not None else None
+
+        domain_analyses.append({
+            "codice": domain_code,
+            "etichetta": domain["etichetta"],
+            "punteggio_diretto": raw_score,
+            "punteggio_standard": standard_score,
+            "percentile_dominio": percentile,
+            "fascia": fascia,
+            "num_domande": num_domande,
+        })
+
+        if standard_score is not None:
+            total_standard += standard_score
+            has_any_standard_score = True
+
+    return domain_analyses, total_standard if has_any_standard_score else None
+
+
 def compute_psychometric_analysis(
     risposte: list,
     scale_doc: dict,
@@ -76,6 +139,7 @@ def compute_psychometric_analysis(
         {
             "domini": [{codice, etichetta, punteggio_diretto, punteggio_standard,
                         percentile_dominio, fascia, num_domande}, ...],
+            "somma_punteggi_standard": int | None,
             "indice_qv": int | None,
             "percentile": int | None,
             "fascia_qv": str | None,
@@ -100,6 +164,7 @@ def compute_psychometric_analysis(
                 }
                 for d in direct_scores
             ],
+            "somma_punteggi_standard": None,
             "indice_qv": None,
             "percentile": None,
             "fascia_qv": None,
@@ -108,53 +173,17 @@ def compute_psychometric_analysis(
 
     table_a = scoring.get("tabella_A_conversione_punteggi_diretti_standard", {})
     table_b = scoring.get("tabella_B_indice_qdv", {})
-
-    domini_12 = table_a.get("domini_con_12_item", {})
-    conv_12 = domini_12.get("conversione", {})
-    dom_11 = table_a.get("dominio_IS_con_11_item", {})
-    conv_11 = dom_11.get("conversione", {})
     conv_qdv = table_b.get("conversione", {})
-
-    domain_analyses = []
-    total_standard = 0
-
-    for d in direct_scores:
-        raw = d["punteggio_totale"]
-        codice = d["codice"].upper()
-
-        if codice == "IS":
-            conv = conv_11
-        else:
-            conv = conv_12
-
-        raw_str = str(raw)
-        std_val = None
-        perc_val = None
-        if raw_str in conv:
-            entry = conv[raw_str]
-            std_val = entry.get("std")
-            perc_val = entry.get("perc")
-
-        fascia = _std_to_fascia(std_val) if std_val is not None else None
-
-        domain_analyses.append({
-            "codice": d["codice"],
-            "etichetta": d["etichetta"],
-            "punteggio_diretto": raw,
-            "punteggio_standard": std_val,
-            "percentile_dominio": perc_val,
-            "fascia": fascia,
-            "num_domande": d["num_domande"],
-        })
-
-        if std_val is not None:
-            total_standard += std_val
+    domain_analyses, total_standard = _build_domain_analyses(
+        direct_scores=direct_scores,
+        table_a=table_a,
+    )
 
     indice_qv = None
     percentile = None
     fascia_qv = None
 
-    if conv_qdv:
+    if conv_qdv and total_standard is not None:
         total_str = str(total_standard)
         if total_str in conv_qdv:
             entry = conv_qdv[total_str]
@@ -164,6 +193,7 @@ def compute_psychometric_analysis(
 
     return {
         "domini": domain_analyses,
+        "somma_punteggi_standard": total_standard,
         "indice_qv": indice_qv,
         "percentile": percentile,
         "fascia_qv": fascia_qv,
@@ -173,9 +203,9 @@ def compute_psychometric_analysis(
 
 def _indice_to_fascia(indice: int) -> str:
     """Restituisce la fascia interpretativa per l'indice QdV (media=100, DS=15)."""
-    if indice > 145:
+    if indice >= 130:
         return "Molto Alto"
-    elif indice > 115:
+    elif indice >= 116:
         return "Alto"
     elif indice >= 85:
         return "Medio"

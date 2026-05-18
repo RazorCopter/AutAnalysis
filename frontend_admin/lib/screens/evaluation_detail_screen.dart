@@ -1,6 +1,7 @@
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/evaluation_model.dart';
@@ -42,6 +43,9 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     Color(0xFF64B5F6), Color(0xFFFFB74D), Color(0xFF81C784), Color(0xFFCE93D8),
     Color(0xFFE57373), Color(0xFF4FC3F7), Color(0xFFAED581), Color(0xFFFF8A65),
   ];
+
+  bool get _hasStandardProfile =>
+      _analysis?.domini.any((domain) => domain.punteggioStandard != null) ?? false;
 
   @override
   void initState() {
@@ -87,9 +91,6 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     if (_eval == null) return;
     setState(() => _isLoadingAnalysis = true);
     final analysis = await _api.getEvaluationAnalysis(_eval!.idValutazione);
-    print("DEBUG AUTANALYSIS - Scala: ${widget.scale.nome}");
-    print("DEBUG AUTANALYSIS - indiceQv: ${analysis?.indiceQv}, percentile: ${analysis?.percentile}");
-    print("DEBUG AUTANALYSIS - domini: ${analysis?.domini.map((d) => '${d.codice}=std:${d.punteggioStandard}/raw:${d.punteggioDiretto}').join(', ')}");
     if (mounted) {
       setState(() {
         _analysis = analysis;
@@ -259,14 +260,14 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
             children: [
               _buildHistoryCard(),
               const SizedBox(height: 20),
+              if (_hasStandardProfile) ...[
+                _buildQvSummaryCard(),
+                const SizedBox(height: 20),
+              ],
               _buildMetaCard(),
               const SizedBox(height: 20),
               _buildClinicalCard(),
               const SizedBox(height: 20),
-              if (_analysis != null && _analysis!.indiceQv != null)
-                _buildQvSummaryCard(),
-              if (_analysis != null && _analysis!.indiceQv != null)
-                const SizedBox(height: 20),
               _buildChartCard(),
               const SizedBox(height: 20),
               _buildDomainTable(),
@@ -447,65 +448,79 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
           borderRadius: BorderRadius.circular(16),
         ),
         padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 32),
-        child: Row(
+        child: Wrap(
+          spacing: 28,
+          runSpacing: 20,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Expanded(
-              child: Column(
+            _summaryMetric(
+              title: 'Indice Qualità della Vita',
+              value: a.indiceQv?.toString() ?? '—',
+              hint: 'Scala normativa centrata su 100',
+              color: Colors.white,
+              large: true,
+            ),
+            _summaryMetric(
+              title: 'Percentile',
+              value: a.percentile != null ? '${a.percentile}°' : '—',
+              hint: 'Posizionamento rispetto al campione',
+              color: const Color(0xFFAED581),
+              large: true,
+            ),
+            _summaryMetric(
+              title: 'Somma Punteggi Standard',
+              value: a.sommaPunteggiStandard?.toString() ?? '—',
+              hint: 'Somma degli 8 domini',
+              color: const Color(0xFF90CAF9),
+            ),
+            if (a.fasciaQv != null)
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Indice di Qualità della Vita',
-                      style: TextStyle(fontSize: 14, color: Colors.white70)),
-                  const SizedBox(height: 6),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(a.indiceQv?.toString() ?? '—',
-                          style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white)),
-                      const SizedBox(width: 8),
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Text('/ 132',
-                            style: TextStyle(fontSize: 16, color: Colors.white54)),
-                      ),
-                    ],
+                  const Text(
+                    'Fascia interpretativa',
+                    style: TextStyle(fontSize: 13, color: Colors.white70),
                   ),
-                  if (a.fasciaQv != null) ...[
-                    const SizedBox(height: 4),
-                    _fasciaBadge(a.fasciaQv!),
-                  ],
+                  const SizedBox(height: 6),
+                  _fasciaBadge(a.fasciaQv!),
                 ],
               ),
-            ),
-            Container(
-              width: 2, height: 60,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(1),
-              ),
-            ),
-            const SizedBox(width: 32),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Text('Percentile',
-                    style: TextStyle(fontSize: 14, color: Colors.white70)),
-                const SizedBox(height: 4),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(a.percentile?.toString() ?? '—',
-                        style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Color(0xFFAED581))),
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 6),
-                      child: Text('°',
-                          style: TextStyle(fontSize: 22, color: Color(0xFFAED581))),
-                    ),
-                  ],
-                ),
-              ],
-            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _summaryMetric({
+    required String title,
+    required String value,
+    required String hint,
+    required Color color,
+    bool large = false,
+  }) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 180),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 14, color: Colors.white70)),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: large ? 38 : 28,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            hint,
+            style: const TextStyle(fontSize: 12, color: Colors.white54),
+          ),
+        ],
       ),
     );
   }
@@ -533,7 +548,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
   }
   Widget _buildChartCard() {
     final hasAnalysis = _analysis != null && _analysis!.domini.isNotEmpty;
-    final useStandard = hasAnalysis && _analysis!.indiceQv != null;
+    final useRadar = hasAnalysis && _hasStandardProfile;
 
     return Card(
       child: Padding(
@@ -542,12 +557,16 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              useStandard ? 'Profilo Punteggi Standard — Radar' : 'Profilo Punteggi per Dominio',
+              useRadar
+                  ? 'Profilo della Qualità della Vita'
+                  : 'Profilo Punteggi per Dominio',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
             ),
             const SizedBox(height: 4),
             Text(
-              useStandard ? 'Scala 1–20 · Media=10 · DS=3    ▬▬ Paziente    - - - Media normativa' : 'Punteggio grezzo per dominio',
+              useRadar
+                  ? 'Radar chart a 8 assi, scala 0–20, con media normativa fissata a 10'
+                  : 'Fallback automatico per scale senza tabelle di conversione',
               style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 24),
@@ -558,8 +577,8 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
               )
             else
               SizedBox(
-                height: useStandard ? 440 : 300,
-                child: useStandard ? _buildRadarChart() : _buildBarChart(),
+                height: useRadar ? 520 : 320,
+                child: useRadar ? _buildRadarChart() : _buildBarChart(),
               ),
           ],
         ),
@@ -570,65 +589,136 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
   // ─── Radar Chart (San Martín e scale con scoring_tables) ──────────────────
   Widget _buildRadarChart() {
     final domains = _analysis!.domini;
-    final titles = domains.map((d) => d.codice).toList();
     final patientValues = domains
-        .map((d) => (d.punteggioStandard ?? 0).toDouble())
+        .map((d) => ((d.punteggioStandard ?? 0).clamp(0, 20)).toDouble())
         .toList();
-    final meanValues = List<double>.filled(domains.length, 10.0);
+    final maxValues = List<double>.filled(domains.length, 20.0);
 
-    return RadarChart(
-      RadarChartData(
-        radarShape: RadarShape.polygon,
-        tickCount: 5,
-        ticksTextStyle: const TextStyle(fontSize: 10, color: Color(0xFF9E9E9E)),
-        tickBorderData: const BorderSide(color: Color(0xFFDDE7F8), width: 0.8),
-        gridBorderData: const BorderSide(color: Color(0xFFDDE7F8), width: 0.8),
-        radarBorderData: const BorderSide(color: Color(0xFF90A4AE), width: 1.2),
-        radarBackgroundColor: const Color(0xFFF8FBFF),
-        titlePositionPercentageOffset: 0.18,
-        titleTextStyle: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF2D3748),
-        ),
-        getTitle: (index, _) {
-          if (index < 0 || index >= domains.length) {
-            return const RadarChartTitle(text: '');
-          }
-          return RadarChartTitle(
-            text: titles[index],
-          );
-        },
-        dataSets: [
-          RadarDataSet(
-            dataEntries: patientValues
-                .map((v) => RadarEntry(value: v))
-                .toList(),
-            borderColor: const Color(0xFF1A237E),
-            borderWidth: 2.5,
-            fillColor: const Color(0xFF1A237E).withValues(alpha: 0.12),
-            entryRadius: 4.5,
-          ),
-          RadarDataSet(
-            dataEntries: meanValues
-                .map((v) => RadarEntry(value: v))
-                .toList(),
-            borderColor: const Color(0xFFE57373),
-            borderWidth: 1.8,
-            fillColor: Colors.transparent,
-            entryRadius: 2,
-          ),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final chartSize =
+            math.min(availableWidth - 80, 380.0).clamp(260.0, 380.0).toDouble();
+
+        return Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: SizedBox(
+                  width: chartSize,
+                  height: chartSize,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      RadarChart(
+                        RadarChartData(
+                          radarShape: RadarShape.polygon,
+                          tickCount: 4,
+                          ticksTextStyle: const TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF7B8794),
+                          ),
+                          tickBorderData: const BorderSide(color: Color(0xFFDDE7F8), width: 0.8),
+                          gridBorderData: const BorderSide(color: Color(0xFFDDE7F8), width: 0.8),
+                          radarBorderData: const BorderSide(color: Color(0xFF90A4AE), width: 1.2),
+                          radarBackgroundColor: const Color(0xFFF8FBFF),
+                          titlePositionPercentageOffset: 0,
+                          titleTextStyle: const TextStyle(color: Colors.transparent),
+                          getTitle: (index, _) => const RadarChartTitle(text: ''),
+                          dataSets: [
+                            RadarDataSet(
+                              dataEntries: maxValues
+                                  .map((value) => RadarEntry(value: value))
+                                  .toList(),
+                              borderColor: Colors.transparent,
+                              borderWidth: 0,
+                              fillColor: Colors.transparent,
+                              entryRadius: 0,
+                            ),
+                            RadarDataSet(
+                              dataEntries: patientValues
+                                  .map((value) => RadarEntry(value: value))
+                                  .toList(),
+                              borderColor: const Color(0xFF1A237E),
+                              borderWidth: 2.6,
+                              fillColor: const Color(0xFF1A237E).withValues(alpha: 0.14),
+                              entryRadius: 4.5,
+                            ),
+                          ],
+                        ),
+                      ),
+                      IgnorePointer(
+                        child: CustomPaint(
+                          size: Size(chartSize, chartSize),
+                          painter: _DashedRadarMeanPainter(
+                            axisCount: domains.length,
+                            color: const Color(0xFFD84343),
+                            levelFraction: 0.5,
+                          ),
+                        ),
+                      ),
+                      ..._buildRadarAxisLabels(domains, chartSize),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 18,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: const [
+                _LegendItem(
+                  color: Color(0xFF1A237E),
+                  label: 'Profilo paziente',
+                ),
+                _LegendItem(
+                  color: Color(0xFFD84343),
+                  label: 'Media normativa (10)',
+                  dashed: true,
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  List<Widget> _buildRadarAxisLabels(List<DomainAnalysis> domains, double chartSize) {
+    final center = chartSize / 2;
+    final labelRadius = (chartSize / 2) + 26;
+    const labelWidth = 76.0;
+
+    return List<Widget>.generate(domains.length, (index) {
+      final angle = (-math.pi / 2) + (2 * math.pi * index / domains.length);
+      final dx = center + (labelRadius * math.cos(angle));
+      final dy = center + (labelRadius * math.sin(angle));
+
+      return Positioned(
+        left: dx - (labelWidth / 2),
+        top: dy - 14,
+        width: labelWidth,
+        child: Text(
+          domains[index].codice,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+      );
+    });
   }
 
   // ─── Istogramma Barre (fallback per scale senza scoring_tables) ────────────
   Widget _buildBarChart() {
     final hasAnalysis = _analysis != null && _analysis!.domini.isNotEmpty;
     final items = hasAnalysis ? _analysis!.domini : _eval!.domini;
-    final useStandard = hasAnalysis && _analysis!.indiceQv != null;
-    final maxY = useStandard ? 20.0 : 18.0;
+    const maxY = 60.0;
 
     return BarChart(
       BarChartData(
@@ -642,7 +732,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                   ? items[group.x]
                   : (items as List<DomainScore>)[group.x];
               final label = item is DomainAnalysis ? item.etichetta : (item as DomainScore).etichetta;
-              final suffix = useStandard ? ' std' : ' pt';
+              final suffix = ' pt';
               return BarTooltipItem(
                 '$label\n${rod.toY.toInt()}$suffix',
                 const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
@@ -685,7 +775,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 32,
-              interval: useStandard ? 5 : 5,
+              interval: 10,
               getTitlesWidget: (val, _) => Text(
                 val.toInt().toString(),
                 style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
@@ -705,9 +795,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
         barGroups: items.asMap().entries.map((e) {
           final color = _domainColors[e.key % _domainColors.length];
           final value = items is List<DomainAnalysis>
-              ? ((useStandard
-                    ? (items as List<DomainAnalysis>)[e.key].punteggioStandard
-                    : (items as List<DomainAnalysis>)[e.key].punteggioDiretto) ?? 0)
+              ? (items as List<DomainAnalysis>)[e.key].punteggioDiretto
               : (items as List<DomainScore>)[e.key].punteggio;
           return BarChartGroupData(
             x: e.key,
@@ -719,7 +807,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                 backDrawRodData: BackgroundBarChartRodData(
                   show: true,
-                  toY: useStandard ? 20 : 18,
+                  toY: maxY,
                   color: color.withValues(alpha: 0.08),
                 ),
               ),
@@ -732,9 +820,6 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
 
   // ─── Tabella riepilogo domini ───────────────────────────────────────────────
   Widget _buildDomainTable() {
-    final hasAnalysis = _analysis != null && _analysis!.domini.isNotEmpty;
-    final showStandard = hasAnalysis && _analysis!.indiceQv != null;
-
     if (_isLoadingAnalysis) {
       return const Card(
         child: Padding(
@@ -753,108 +838,86 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
             const Text('Riepilogo per Dominio',
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
             const SizedBox(height: 16),
-            Table(
-              columnWidths: showStandard
-                  ? const {
-                      0: FlexColumnWidth(0.8),
-                      1: FlexColumnWidth(2.5),
-                      2: FlexColumnWidth(1),
-                      3: FlexColumnWidth(1),
-                      4: FlexColumnWidth(1),
-                      5: FlexColumnWidth(1.5),
-                    }
-                  : const {
-                      0: FlexColumnWidth(1),
-                      1: FlexColumnWidth(3),
-                      2: FlexColumnWidth(1.5),
-                      3: FlexColumnWidth(1),
-                    },
-              children: [
-                TableRow(
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  children: [
-                    const _TableHeader('Cod.'),
-                    const _TableHeader('Dominio'),
-                    if (showStandard) ...[
-                      const _TableHeader('Grezzo'),
-                      const _TableHeader('Std'),
-                      const _TableHeader('%'),
-                      const _TableHeader('Fascia'),
-                    ] else ...[
-                      const _TableHeader('Punteggio'),
-                      const _TableHeader('Domande'),
-                    ],
-                  ],
+            if (!_hasStandardProfile)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'La scala corrente non include tabelle di conversione: il punteggio standard non e disponibile.',
+                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                 ),
-                ...(showStandard ? _analysis!.domini.asMap().entries : _eval!.domini.asMap().entries).map((e) {
-                  final color = _domainColors[e.key % _domainColors.length];
-                  if (showStandard) {
-                    final d = _analysis!.domini[e.key];
-                    return TableRow(
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(color: const Color(0xFFE8EEF8)),
-                        ),
-                      ),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(d.codice,
-                                style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 11)),
-                          ),
-                        ),
-                        _TableCell(d.etichetta, fontSize: 12),
-                        _TableCell(d.punteggioDiretto.toString()),
-                        _TableCell(d.punteggioStandard?.toString() ?? '—', bold: true),
-                        _TableCell(d.percentileDominio?.toString() != null
-                            ? '${d.percentileDominio}°' : '—'),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                          child: d.fascia != null ? _fasciaBadge(d.fascia!) : const Text('—',
-                              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                        ),
-                      ],
-                    );
-                  } else {
-                    final d = _eval!.domini[e.key];
-                    return TableRow(
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(color: const Color(0xFFE8EEF8)),
-                        ),
-                      ),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(d.codice,
-                                style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 12)),
-                          ),
-                        ),
-                        _TableCell(d.etichetta),
-                        _TableCell(d.punteggio.toString(), bold: true),
-                        _TableCell(d.numDomande.toString()),
-                      ],
-                    );
-                  }
-                }),
-              ],
+              ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                headingRowColor: WidgetStatePropertyAll(
+                  AppTheme.primaryColor.withValues(alpha: 0.08),
+                ),
+                columns: const [
+                  DataColumn(label: Text('Acronimo')),
+                  DataColumn(label: Text('Nome Esteso')),
+                  DataColumn(label: Text('Punteggio Grezzo')),
+                  DataColumn(label: Text('Punteggio Standard')),
+                ],
+                rows: _buildDomainRows(),
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  List<DataRow> _buildDomainRows() {
+    if (_hasStandardProfile && _analysis != null) {
+      return _analysis!.domini.asMap().entries.map((entry) {
+        final index = entry.key;
+        final domain = entry.value;
+        final color = _domainColors[index % _domainColors.length];
+        return DataRow(
+          cells: [
+            DataCell(_domainCodeChip(domain.codice, color)),
+            DataCell(Text(domain.etichetta)),
+            DataCell(Text(domain.punteggioDiretto.toString())),
+            DataCell(
+              Text(
+                domain.punteggioStandard?.toString() ?? '—',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      }).toList();
+    }
+
+    final domains = _eval?.domini ?? <DomainScore>[];
+    return domains.asMap().entries.map((entry) {
+      final index = entry.key;
+      final domain = entry.value;
+      final color = _domainColors[index % _domainColors.length];
+      return DataRow(
+        cells: [
+          DataCell(_domainCodeChip(domain.codice, color)),
+          DataCell(Text(domain.etichetta)),
+          DataCell(Text(domain.punteggio.toString())),
+          const DataCell(Text('—')),
+        ],
+      );
+    }).toList();
+  }
+
+  Widget _domainCodeChip(String code, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        code,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: color,
+          fontSize: 12,
         ),
       ),
     );
@@ -894,6 +957,9 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
 
   Widget _buildAnswerRow(int idx) {
     final answer = _editableAnswers[idx];
+    final question = _findQuestion(answer.codiceDomanda);
+    final availableScores = _getAvailableScores(answer.codiceDomanda);
+
     return ExpansionTile(
       tilePadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       leading: Container(
@@ -911,11 +977,17 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
           ),
         ),
       ),
+      subtitle: question != null
+          ? Text(
+              question.testoDomanda,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: AppTheme.textSecondary),
+            )
+          : null,
       title: Row(
         children: [
-          // Score selector
-          ...List.generate(3, (scoreIdx) {
-            final score = scoreIdx + 1;
+          ...availableScores.map((score) {
             final isSelected = answer.punteggio == score;
             return Padding(
               padding: const EdgeInsets.only(right: 6),
@@ -979,51 +1051,176 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
             ),
           ),
         ),
+        if (question?.note != null && question!.note!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(
+              'Nota item: ${question.note!}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Question? _findQuestion(String codiceDomanda) {
+    for (final section in widget.scale.sezioni) {
+      for (final question in section.domande) {
+        if (question.codice == codiceDomanda) {
+          return question;
+        }
+      }
+    }
+    return null;
+  }
+
+  List<int> _getAvailableScores(String codiceDomanda) {
+    final question = _findQuestion(codiceDomanda);
+    final scores = question?.opzioni.map((option) => option.punteggio).toSet().toList() ?? <int>[];
+    scores.sort();
+    return scores.isNotEmpty ? scores : <int>[1, 2, 3];
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+  final bool dashed;
+
+  const _LegendItem({
+    required this.color,
+    required this.label,
+    this.dashed = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CustomPaint(
+          size: const Size(24, 12),
+          painter: _LegendLinePainter(color: color, dashed: dashed),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppTheme.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }
 }
 
-// ─── Helpers tabella ────────────────────────────────────────────────────────
-class _TableHeader extends StatelessWidget {
-  final String text;
-  const _TableHeader(this.text);
+class _LegendLinePainter extends CustomPainter {
+  final Color color;
+  final bool dashed;
+
+  const _LegendLinePainter({
+    required this.color,
+    required this.dashed,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-          color: AppTheme.textSecondary,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    final start = Offset(0, size.height / 2);
+    final end = Offset(size.width, size.height / 2);
+
+    if (dashed) {
+      _DashedRadarMeanPainter.drawDashedSegment(
+        canvas,
+        start,
+        end,
+        paint,
+      );
+      return;
+    }
+
+    canvas.drawLine(start, end, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _LegendLinePainter oldDelegate) {
+    return oldDelegate.color != color || oldDelegate.dashed != dashed;
   }
 }
 
-class _TableCell extends StatelessWidget {
-  final String text;
-  final bool bold;
-  final double? fontSize;
-  const _TableCell(this.text, {this.bold = false, this.fontSize});
+class _DashedRadarMeanPainter extends CustomPainter {
+  final int axisCount;
+  final Color color;
+  final double levelFraction;
+
+  const _DashedRadarMeanPainter({
+    required this.axisCount,
+    required this.color,
+    required this.levelFraction,
+  });
+
+  static void drawDashedSegment(
+    Canvas canvas,
+    Offset start,
+    Offset end,
+    Paint paint,
+  ) {
+    const dashLength = 7.0;
+    const gapLength = 4.0;
+    final totalLength = (end - start).distance;
+    if (totalLength == 0) return;
+
+    final direction = (end - start) / totalLength;
+    double distance = 0;
+
+    while (distance < totalLength) {
+      final currentStart = start + (direction * distance);
+      final currentEnd = start + (direction * math.min(distance + dashLength, totalLength));
+      canvas.drawLine(currentStart, currentEnd, paint);
+      distance += dashLength + gapLength;
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: fontSize ?? 13,
-          color: bold ? AppTheme.textPrimary : AppTheme.textSecondary,
-          fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    if (axisCount < 3) return;
+
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.8
+      ..style = PaintingStyle.stroke;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (math.min(size.width, size.height) / 2) * 0.92 * levelFraction;
+    final points = List<Offset>.generate(axisCount, (index) {
+      final angle = (-math.pi / 2) + (2 * math.pi * index / axisCount);
+      return Offset(
+        center.dx + (radius * math.cos(angle)),
+        center.dy + (radius * math.sin(angle)),
+      );
+    });
+
+    for (var index = 0; index < points.length; index++) {
+      final start = points[index];
+      final end = points[(index + 1) % points.length];
+      drawDashedSegment(canvas, start, end, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRadarMeanPainter oldDelegate) {
+    return oldDelegate.axisCount != axisCount ||
+        oldDelegate.color != color ||
+        oldDelegate.levelFraction != levelFraction;
   }
 }

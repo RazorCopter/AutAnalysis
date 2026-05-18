@@ -1,0 +1,1092 @@
+{
+  "scala": {
+    "nome": "Personal Outcomes Scale (POS) - Scala della qualità di vita di persone con disabilità intellettiva",
+    "versione": "Eterovalutativa - Italiana",
+    "autori": "Jos van Loon, Geert van Hove, Robert Schalock, Claudia Claes (2008)",
+    "traduzione_adattamento": "Alessandra Coscarelli e Giulia Balboni (2011)",
+    "tipo_somministrazione": "eterovalutativa",
+    "target": "Persone con disabilità intellettiva",
+    "intervistato_target": "caregiver (genitore, familiare, educatore, psicologo, ecc.)",
+    "istruzioni": "Compilare con intervista semi-strutturata a un caregiver che conosce approfonditamente la persona. Fornire esempi concreti. Assegnare punteggio a tutti gli item.",
+    "range_punteggio_totale": {
+      "min": 48,
+      "max": 144
+    },
+    "domini": [
+      {
+        "codice": "SP",
+        "nome": "Sviluppo Personale",
+        "descrizione": "Istruzione, competenze personali, apprendimento, autonomia nelle attività quotidiane",
+        "domande": [
+          {
+            "codice": "SP-1",
+            "testo": "Quanto la persona è in grado di realizzare le seguenti attività di vita quotidiana: nutrirsi da solo, muoversi negli spazi abitativi, usare il bagno, vestirsi?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Riesce a farlo da solo",
+                "descrizione": "È in grado da solo e senza aiuto di realizzare queste attività. Il risultato può non essere pienamente soddisfacente e a volte può essergli suggerito (a voce o mostrandoglielo) come avviare alcune attività"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Ha bisogno di aiuto",
+                "descrizione": "In alcune attività ha chiaramente bisogno di aiuto"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Non riesce a farlo da solo",
+                "descrizione": "Altre persone si occupano di realizzare per lui queste attività"
+              }
+            ]
+          },
+          {
+            "codice": "SP-2",
+            "testo": "Quanto la persona è in grado di realizzare le seguenti attività di vita quotidiana: preparare i pasti, occuparsi della casa, uscire di casa e camminare nei paraggi, prendere i suoi farmaci senza dimenticarsene?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Riesce a farlo da solo",
+                "descrizione": "È in grado di realizzare queste attività da solo. A volte può essergli suggerito (a voce o mostrandoglielo) come avviare alcune attività"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Ha bisogno di aiuto",
+                "descrizione": "È in grado di realizzare queste attività con l'aiuto di altre persone. Ad es., ha bisogno che qualcuno gli pianifichi e organizzi le attività che deve fare o lo aiuti nella realizzazione di alcune parti"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Non riesce a farlo da solo",
+                "descrizione": "Altre persone si occupano al suo posto di realizzare queste attività"
+              }
+            ]
+          },
+          {
+            "codice": "SP-3",
+            "testo": "Quante esperienze di formazione ha realizzato o quante abilità ha imparato la persona negli ultimi 6-12 mesi (ad es., rifarsi il letto, lavarsi, vestirsi, mangiare da solo, pulire la sua stanza, cucinare, andare fuori casa, usare il computer, fare un lavoro, un'attività o dei giochi)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Molte",
+                "descrizione": "Durante tutto l'anno frequenta una scuola o segue svariati corsi o training per acquisire competenze specifiche e/o mostra di aver imparato nuove abilità"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Alcune",
+                "descrizione": "Segue alcuni brevi corsi durante l'anno e/o mostra di aver acquisito alcune nuove abilità"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Poche o nulla",
+                "descrizione": "Segue pochi corsi o non ne segue nessuno e non mostra di aver acquisito nuove abilità"
+              }
+            ]
+          },
+          {
+            "codice": "SP-4",
+            "testo": "La persona ha la possibilità di dimostrare le competenze che possiede nel lavoro, a scuola, a casa (ad es., usare il computer, svolgere bene il suo lavoro, un'attività o un gioco, andare fuori casa, rifarsi il letto, lavarsi, vestirsi, mangiare da solo, pulire la sua stanza, cucinare o collaborare quando altre persone lo assistono nella realizzazione di queste attività)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Può realizzare da solo e senza aiuto tutto ciò che sa fare"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Non può sempre realizzare ciò che sa fare da solo anche se le abilità che possiede sono minime e residuali (ad es., girarsi e sollevarsi quando viene lavato perché viene alzato e girato di peso) perché ad es., non c'è il tempo e quindi altre persone si fanno carico dei suoi compiti, oppure non vi sono operatori disponibili che possano supervisionarlo o assisterlo durante l'attività"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "Ha raramente o mai l'opportunità di realizzare ciò che sa fare da solo anche se le abilità che possiede sono minime e residuali (ad es., girarsi e sollevarsi quando viene lavato perché viene alzato e girato di peso) perché ad es., non c'è il tempo e quindi altre persone si fanno carico dei suoi compiti, oppure non vi sono operatori disponibili che possano supervisionarlo o assisterlo durante l'attività"
+              }
+            ]
+          },
+          {
+            "codice": "SP-5",
+            "testo": "La persona ha l'opportunità di accedere alle informazioni che gli interessano (ad es., usare internet, leggere o sfogliare le riviste, quotidiani anche locali, andare in biblioteca, conoscere i suoi appuntamenti, impegni o il suo stato di salute)? Le informazioni che gli interessano sono in un formato per lui comprensibile?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Può accedere a tutte le fonti di informazione che desidera (ad es., ha libero accesso ad internet, gli è consentito andare in biblioteca, avere riviste e giornali, avere a disposizione informazioni sul suo stato di salute e i suoi impegni) e può fruirne nel formato a lui più congeniale (ad es., raffigurazioni iconiche piuttosto che testi audio fonici e scritti)"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Alcune fonti di informazione che desidera non sono disponibili o non sono disponibili nel formato a lui più congeniale (ad es., non può utilizzare internet, non ha la possibilità di avere le riviste che desidera a causa dei costi o dei limiti imposti da altre persone, le informazioni che desidera non sono disponibili nel codice comunicativo più comprensibile per lui)"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "La maggior parte delle volte non ha accesso alle fonti di informazione che desidera (ad es., non dispone di un collegamento internet o di riviste, non ha l'occasione di frequentare una biblioteca, perché gli operatori non possono accompagnarlo oppure non glielo consentono perché non rispetta le regole che gli vengono date, oppure le informazioni sono disponibili in un codice comunicativo non comprensibile per l'individuo)"
+              }
+            ]
+          },
+          {
+            "codice": "SP-6",
+            "testo": "Quanto spesso la persona utilizza strumenti tecnologici (ad es., computer, telefono cellulare, lettore dvd, stereo, I-Pod, play station, forno a microonde, lavatrice)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Abitualmente usa strumenti tecnologici"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Usa oggetti tecnologici solo quando è strettamente necessario"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "Non usa nessuno di questi oggetti se non eccezionalmente. Ad es., se ha necessità di utilizzare il telefono, un'altra persona telefona al suo posto"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "codice": "AD",
+        "nome": "Autodeterminazione",
+        "descrizione": "Obiettivi, aspirazioni, decisioni, scelte (cosa indossare, dove andare, come spendere i soldi)",
+        "domande": [
+          {
+            "codice": "AD-1",
+            "testo": "La persona ha la possibilità di scegliere cosa indossare, mangiare e in quali luoghi andare, se partecipare alle attività organizzate, in quale luogo o postura stare, ecc?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Può sempre o quasi sempre decidere da solo ad es., come vestirsi, cosa mangiare, dove andare, se partecipare alle attività organizzate, in quale luogo o postura stare"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Ha la possibilità di fare solo alcune scelte ad es., può decidere come vestirsi ma per altri aspetti deve attenersi a quanto deciso da altri (ad es., non può decidere cosa mangiare perché il menù è deciso per tutti o perché deve necessariamente seguire una dieta, può andare nei posti che sceglie solo se altre persone sono d'accordo con lui e vi sono operatori disponibili ad accompagnarlo"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "Ha limitata possibilità di scelta. Può decidere solo in parte come vestirsi e cosa mangiare perché in genere sono le altre persone che gli preparano i vestiti che deve indossare, decidono cosa deve mangiare, dove può andare, in quale luogo o postura stare"
+              }
+            ]
+          },
+          {
+            "codice": "AD-2",
+            "testo": "Quando gli viene data la possibilità di scegliere, la persona sceglie (ad es., decidere che struttura frequentare, dove vivere, che attività o lavoro fare, dove andare, se recarsi al centro per le attività riabilitative e rieducative)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "L'individuo sceglie tutte le volte che gli viene data l'opportunità di farlo. Le scelte possono riguardare sia la sua vita quotidiana (ad es., decidere tra due attività proposte) sia aspetti più complessi, astratti o relativi al suo futuro (ad es., decidere di andare via dalla struttura)"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Fa delle scelte solo a volte e non tutte le volte che gliene viene data l'opportunità. Le scelte possono riguardare sia la sua vita quotidiana (ad es., decidere tra due attività proposte) sia aspetti più complessi, astratti o relativi al suo futuro (ad es., decidere di andare via dalla struttura)"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "L'individuo non sceglie nella maggior parte dei casi in cui gli viene data l'opportunità. Sono gli altri a scegliere per lui"
+              }
+            ]
+          },
+          {
+            "codice": "AD-3",
+            "testo": "La persona prende decisioni che sono importanti per lui/lei, anche se potrebbero non corrispondere a ciò che vogliono gli altri (ad es., che lavoro fare)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Del tutto o quasi",
+                "descrizione": "Dimostra una grande autodeterminazione. Prende decisioni che altri possono non condividere e non si lascia condizionare"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Abbastanza",
+                "descrizione": "In alcune situazioni prende delle decisioni che altri possono non condividere; in altre segue le decisioni prese da persone a lui vicine"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "Segue quasi sempre le decisioni prese da persone a lui vicine"
+              }
+            ]
+          },
+          {
+            "codice": "AD-4",
+            "testo": "Le altre persone rispettano le decisioni prese dalla persona (qualunque sia la decisione specifica)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Molto rispettate e seguite",
+                "descrizione": "È sempre preso sul serio ovvero gli altri rispettano effettivamente ciò che ha deciso o che desidera. Quando le sue decisioni non possono essere rispettate, gli viene spiegato il perché e si cerca insieme all'individuo una soluzione alternativa che possa soddisfarlo"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Abbastanza rispettate",
+                "descrizione": "Alcune sue decisioni (desideri) non vengono prese adeguatamente in considerazione e può accadere che all'individuo non sia spiegato perché non è possibile rispettare alcune sue decisioni. Non vi è chiarezza rispetto alla sua possibilità di scegliere e accade che l'individuo percepisca ambiguità"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Non rispettate",
+                "descrizione": "Le decisioni o i desideri dell'individuo non sono mai presi in considerazione dalle persone a lui vicine"
+              }
+            ]
+          },
+          {
+            "codice": "AD-5",
+            "testo": "La persona può fare ciò che vuole di almeno una parte dei suoi soldi e decidere come spenderli?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Sì",
+                "descrizione": "Dispone direttamente di una parte delle sue finanze e può decidere come spenderli"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Più o meno",
+                "descrizione": "Dispone solo di una piccola parte dei suoi soldi che può spendere liberamente (ad es., per prendere un caffè o snack al bar, per acquistare accessori da mettere nella propria stanza). Per le altre spese (ad es., comprare dei vestiti) deve fare una esplicita richiesta e rendere conto dell'acquisto fatto. Il fatto che i soldi siano spesi da altri nel suo interesse non è sufficiente per rispondere 'Più o meno' e deve essere contrassegnato 'No'"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "No",
+                "descrizione": "Non può gestire i suoi soldi e spenderli come vuole perché altre persone lo fanno per lui. Per qualsiasi spesa deve chiedere il permesso"
+              }
+            ],
+            "note": "Il fatto che i soldi siano spesi da altri nel suo interesse non è sufficiente per rispondere 'Più o meno' → va segnato 'No'"
+          },
+          {
+            "codice": "AD-6",
+            "testo": "La persona ha l'opportunità di esprimere le sue opinioni (ad es., esprimere le sue preferenze in merito a vestiti da indossare, cose da mangiare, attività da fare, luoghi dove andare)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Sempre",
+                "descrizione": "Ha l'opportunità di esprimere sempre le sue opinioni e preferenze alle altre persone (ad es., membri dello staff e persone sconosciute)"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Solo a volte ha l'opportunità di esprimere le sue opinioni e preferenze alle altre persone"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "Non ha mai o quasi mai la possibilità di esprimere le proprie preferenze alle altre persone"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "codice": "RI",
+        "nome": "Relazioni Interpersonali",
+        "descrizione": "Rapporti con famiglia, amici, conoscenze, sostegno sociale",
+        "domande": [
+          {
+            "codice": "RI-1",
+            "testo": "La persona ha amici cari con cui parla, si incontra regolarmente e sui quali fa affidamento in caso di bisogno?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Sì",
+                "descrizione": "Ha uno o più amici con cui ha instaurato un rapporto forte e duraturo (ad es., li incontra o li sente regolarmente)"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Più o meno",
+                "descrizione": "Ha qualche conoscenza ma non un'amicizia stretta e duratura"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "No",
+                "descrizione": "Non ha amici o non ha amici cari"
+              }
+            ]
+          },
+          {
+            "codice": "RI-2",
+            "testo": "Quanto spesso la persona partecipa ad attività sociali come ad es., uscire, mangiare, andare a feste, a cene o a ballare insieme ad amici o conoscenti?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Regolarmente (più o meno ogni settimana) partecipa ad attività sociali insieme ad amici o conoscenti"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "A volte (più o meno mensilmente) partecipa ad alcune attività sociali"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Mai",
+                "descrizione": "Partecipa di rado ad attività sociali organizzate con amici o persone che conosce. Le uniche attività sociali a cui partecipa sono quelle organizzate dagli operatori per il gruppo degli utenti della struttura (ad es., andare al cinema con gli altri utenti)"
+              }
+            ]
+          },
+          {
+            "codice": "RI-3",
+            "testo": "Quanto spesso di solito la persona parla con i suoi familiari di persona, al telefono, o per e-mail?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Parla con i suoi familiari regolarmente e ogni volta che lo desidera di persona, al telefono o per e-mail"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Parla solo a volte con i suoi familiari di persona, al telefono o per e-mail e comunque non tutte le volte che lo desidera"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Mai",
+                "descrizione": "Non ha contatti con i familiari oppure sono molto rari (ad es., li sente o li incontra solo occasionalmente)"
+              }
+            ]
+          },
+          {
+            "codice": "RI-4",
+            "testo": "Quanto spesso di solito la persona parla con i suoi amici di persona, per telefono o e-mail?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Parla con i suoi amici regolarmente e ogni volta che lo desidera di persona, al telefono o e-mail"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Parla solo a volte con i suoi amici di persona, al telefono o per e-mail e comunque non tutte le volte che lo desidera"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Mai",
+                "descrizione": "Non ha amici (vedi punteggio della domanda RI-1)"
+              }
+            ]
+          },
+          {
+            "codice": "RI-5",
+            "testo": "La famiglia tratta la persona con dignità e rispetto oppure mostra di apprezzarne il valore in altri modi (ad es., tenendo in considerazione le sue idee e i suoi desideri incoraggiandolo e sostenendolo nel perseguimento dei suoi obiettivi)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Sì",
+                "descrizione": "La famiglia dimostra il suo affetto all'individuo, che è considerato parte della famiglia stessa. Le sue opinioni e i suoi desideri sono rispettati"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Più o meno",
+                "descrizione": "La famiglia dimostra di voler bene all'individuo che però non sempre è preso sul serio (ad es., non sempre le sue opinioni e i suoi desideri sono tenuti in considerazione)"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "No",
+                "descrizione": "L'individuo non è mai preso sul serio dai suoi familiari. Le sue opinioni e i suoi desideri non sono considerati"
+              }
+            ]
+          },
+          {
+            "codice": "RI-6",
+            "testo": "La persona ha delle persone (ad es., amici, familiari, colleghi di lavoro) alle quali chiedere aiuto, consigli e sostegno? Ha una rete sociale di sostegno?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Sì",
+                "descrizione": "Oltre alle persone che si prendono cura di lui (ad es., badanti, infermieri, operatori), l'individuo ha un'ampia rete sociale di parenti, amici, vicini, conoscenti a cui rivolgersi in caso di bisogno"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Più o meno",
+                "descrizione": "Oltre alle persone che si prendono cura di lui (ad es., badanti, infermieri, operatori), ha qualche altra persona ma non una vera rete sociale"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "No",
+                "descrizione": "Ha solo le persone che si prendono cura di lui (ad es., badanti, infermieri, operatori) ma non ha altri familiari, amici o conoscenti a cui chiedere aiuto"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "codice": "IS",
+        "nome": "Inclusione Sociale",
+        "descrizione": "Partecipazione alle attività del paese/quartiere, impegni, sostegno sociale dalla comunità",
+        "domande": [
+          {
+            "codice": "IS-1",
+            "testo": "Quanto spesso la persona parla (comunica) di persona, al telefono con i suoi vicini di casa?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Parla (comunica) regolarmente con vari vicini ad es., scambia 'due chiacchiere' con loro, va a trovarli o loro vanno a trovare l'individuo"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Saluta i vicini e regolarmente 'fa due chiacchiere con loro' ma non vi sono mai occasioni di visite reciproche"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "Saluta i vicini ma non si ferma a chiacchierare"
+              }
+            ]
+          },
+          {
+            "codice": "IS-2",
+            "testo": "La persona riconosce le persone che vivono nel suo paese/quartiere o vicinato? Quante? (Non è necessario che l'individuo le conosca personalmente o per nome, ma deve essere in grado di riconoscerle, di sapere chi sono)",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Molte (5+)",
+                "descrizione": "5 o più; oppure quante può di fatto conoscerne (ad es., se vi sono poche persone che vivono nelle immediate vicinanze allora anche 3 persone possono essere considerate molte, soprattutto se anche i vicini conoscono l'individuo a loro volta)"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Alcune (2-4)",
+                "descrizione": "2-4. Conosce solo una parte dei vicini che potrebbe conoscere"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Poche (0-1)",
+                "descrizione": "0-1"
+              }
+            ]
+          },
+          {
+            "codice": "IS-3",
+            "testo": "Quanto spesso la persona utilizza i servizi o sfrutta le opportunità del luogo in cui vive? Va nei negozi della città o paese dove vive (ad es., parrucchieri, supermercati, alimentari, giornalai, tabaccherie), nei bar, gelaterie e pizzerie, in chiesa, in parrocchia (o altri luoghi di culto), al cinema, allo stadio o a vedere concerti? Utilizza gli autobus pubblici?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Ogni giorno fa uso di molti dei servizi del luogo dove abita"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Fa uso dei servizi del luogo in cui vive uno o due volte alla settimana o solo per le cose più necessarie (ad es., andare al supermercato)"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "Usa raramente o mai i servizi del luogo"
+              }
+            ]
+          },
+          {
+            "codice": "IS-4",
+            "testo": "La persona aiuta spontaneamente gli altri del suo paese/quartiere o vicinato (ad es., fare dei favori per organizzare una festa, portare la spesa, innaffiare le piante, dare da mangiare ai gatti)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Regolarmente fornisce aiuto ai suoi vicini"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Solo a volte fornisce aiuto ai suoi vicini"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "Non aiuta mai i vicini di casa o lo fa solo di rado"
+              }
+            ]
+          },
+          {
+            "codice": "IS-5",
+            "testo": "Quanto spesso le persone del suo paese/quartiere o vicinato vanno a trovare la persona (o lo invitano a casa loro per un caffè o un pranzo) o lo accompagnano nei posti in cui deve andare (ad es., dal medico, a fare la spesa, al lavoro)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Regolarmente i vicini vanno a trovare l'individuo o lo accompagnano nei posti in cui deve andare"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "A volte i vicini vanno a trovare l'individuo o lo accompagnano nei posti in cui deve andare"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "I vicini vanno a trovare l'individuo o lo accompagnano nei posti in cui deve andare solo occasionalmente"
+              }
+            ]
+          },
+          {
+            "codice": "IS-6",
+            "testo": "Quanto spesso la persona partecipa insieme alle persone che vivono nel suo paese/quartiere o vicinato a fare shopping, mangiare fuori, andare in centri commerciali, andare in posti di divertimento (ad es., al cinema o a feste, fiere e concerti musicali), partecipare alle attività di associazioni?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "È membro attivo di varie associazioni, partecipa a fiere/feste, mangia fuori, va per negozi insieme alle persone che vivono nel suo paese/quartiere o vicinato"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Va a fiere/feste, mangia fuori e va per negozi, ma non è membro attivo di nessuna associazione"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Mai",
+                "descrizione": "Non è membro attivo di associazioni, non va a fiere/feste, non va a mangiare fuori e per negozi"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "codice": "D",
+        "nome": "Diritti",
+        "descrizione": "Diritti di fare ciò che fanno gli altri, avere privacy, animali domestici, relazioni sentimentali, voto",
+        "domande": [
+          {
+            "codice": "D-1",
+            "testo": "La persona ha un posto o una stanza dove può avere privacy (ad es., per stare in intimità con il suo partner, per stare da solo)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Decisamente sì",
+                "descrizione": "Dispone di un luogo o ambiente personale nel quale la sua privacy è rispettata"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Forse ma dipende",
+                "descrizione": "Dispone di un luogo o ambiente personale, ma non tutti rispettano la sua privacy (ad es., entrano nella stanza senza bussare)"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "No",
+                "descrizione": "Non dispone di un luogo o ambiente personale perché condivide la stanza con una o più persone. Non sente di avere privacy"
+              }
+            ]
+          },
+          {
+            "codice": "D-2",
+            "testo": "È libero di uscire, entrare nella casa, appartamento o struttura quando vuole?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Decisamente sì",
+                "descrizione": "Può uscire e rientrare quando desidera"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Sì, ma solo in alcune situazioni",
+                "descrizione": "Non sempre può uscire quando vuole, in alcune occasioni non gli è permesso"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "No",
+                "descrizione": "Può uscire solo con il permesso"
+              }
+            ]
+          },
+          {
+            "codice": "D-3",
+            "testo": "Se la persona lo volesse, potrebbe avere un animale domestico (ad es., cane o gatto)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Decisamente sì",
+                "descrizione": "Può avere ogni tipo di animale domestico"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Forse ma dipende",
+                "descrizione": "Può averne solo di alcuni tipi (ad es., animali che non fanno rumore e che non infastidiscono altre persone)"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Mai",
+                "descrizione": "Non gli è permesso avere animali domestici"
+              }
+            ]
+          },
+          {
+            "codice": "D-4",
+            "testo": "Se la persona volesse, potrebbe avere una ragazza/fidanzata o un ragazzo/fidanzato?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Sì",
+                "descrizione": "Se lo volesse, potrebbe decidere se e con chi intrattenere una relazione e quando interromperla"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Dipende",
+                "descrizione": "Potrebbe liberamente decidere di iniziare una nuova relazione. Tuttavia se le persone a lui vicine (ad es., familiari, amici, persone che si prendono cura di lui) ritenessero che, nell'interesse dell'individuo, non fosse più opportuno che frequenti una determinata persona, avrebbero la possibilità di vietarglielo"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "No",
+                "descrizione": "In nessun caso potrebbe avere una relazione sentimentale con un'altra persona"
+              }
+            ]
+          },
+          {
+            "codice": "D-5",
+            "testo": "La persona può stare insieme al suo ragazzo/a, fidanzato/a quanto desidera? Se non ha un partner attribuire il punteggio 'Sì'.",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Sì",
+                "descrizione": "Può stare con il fidanzato/a quando desidera"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Forse ma dipende",
+                "descrizione": "Può stare con il fidanzato/a ma non tutto il tempo che desidera perché ad es., ha l'obbligo di seguire alcune regole della struttura in cui risiede o non gli viene dato il permesso (ad es., deve rientrare entro un certo orario, può dormire fuori casa solo se lo concorda)"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "No",
+                "descrizione": "Non può stare con il fidanzato/a tutto il tempo che desidera ma solo per poche ore al giorno o alla settimana"
+              }
+            ],
+            "note": "Se non ha un partner attribuire il punteggio 'Sì' (OPZIONE_3, punteggio 3)"
+          },
+          {
+            "codice": "D-6",
+            "testo": "Quanto spesso la persona ha votato nelle recenti elezioni (ad es., elezioni politiche, regionali, provinciali, comunali)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Quasi sempre",
+                "descrizione": "Esercita il suo diritto di voto nella maggior parte delle elezioni"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Esercita il suo diritto di voto solo in alcune elezioni"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Mai",
+                "descrizione": "Non esercita mai il suo diritto di voto"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "codice": "BE",
+        "nome": "Benessere Emozionale",
+        "descrizione": "Essere contento, felice, tranquillo, soddisfatto di sé",
+        "domande": [
+          {
+            "codice": "BE-1",
+            "testo": "Come valuta la sicurezza dei posti che la persona frequenta quotidianamente (ad es., tranquillo, a suo agio, non vi sono persone che lo infastidiscono o lo spaventano)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Molto sicuro",
+                "descrizione": "L'ambiente è sicuro e l'individuo si sente decisamente a proprio agio. Può essere se stesso, non viene preso in giro o infastidito"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Abbastanza sicuro",
+                "descrizione": "L'ambiente è abbastanza sicuro e l'individuo si sente abbastanza a proprio agio nel suo ambiente. A volte alcune persone possono infastidirlo e creargli disagio inducendolo ad allontanarsi (ad es., toccano lui o i suoi oggetti, invadono i suoi spazi, urlano o si mostrano aggressivi)"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Per nulla sicuro",
+                "descrizione": "Si sente minacciato dalla presenza di altre persone che lo infastidiscono sia direttamente che indirettamente (anche se le azioni non sono rivolte a lui, l'individuo percepisce un forte disagio in seguito ai comportamenti che mettono in atto, ad es., urlano o si mostrano aggressivi)"
+              }
+            ]
+          },
+          {
+            "codice": "BE-2",
+            "testo": "Quanto spesso la persona ha successo in attività come vincere ad un gioco, finire un lavoro che gli piace, e/o è apprezzato per quello che ha fatto?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Spesso porta a termine con successo le attività che intraprende e/o i suoi meriti sono riconosciuti dalle altre persone"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Solo a volte porta a termine con successo le attività che intraprende e/o non sempre gli altri gli riconoscono i meriti dei suoi successi"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Mai",
+                "descrizione": "Non porta mai a termine con successo le attività che intraprende e/o gli altri riconoscono raramente i meriti delle cose che fa"
+              }
+            ]
+          },
+          {
+            "codice": "BE-3",
+            "testo": "Quanto spesso la persona esprime agli altri i suoi sentimenti di amore e affetto (ad es., glielo dice, scrive o dimostra con baci, abbracci e carezze)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Esprime amore ed affetto in diversi momenti e situazioni, e nei confronti di varie persone usando parole, biglietti, gesti o espressioni del viso"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Ha difficoltà ad esprimere amore ed affetto. Lo fa solo in situazioni specifiche e verso persone che conosce molto bene (ad es., amici e familiari)"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Mai",
+                "descrizione": "Non esprime o esprime raramente amore ed affetto nei confronti delle persone che gli stanno vicine"
+              }
+            ]
+          },
+          {
+            "codice": "BE-4",
+            "testo": "Quanto spesso la persona esprime la sua felicità (ad es., con dei sorrisi, delle risate, delle esclamazioni di gioia)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Regolarmente esprime la sua felicità con sorrisi e risate"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Solo a volte esprime la sua felicità perché in alcuni momenti è triste"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Mai",
+                "descrizione": "Non esprime mai felicità perché si sente raramente felice"
+              }
+            ]
+          },
+          {
+            "codice": "BE-5",
+            "testo": "Quanto spesso la persona esprime la sua soddisfazione per la sua vita con commenti positivi, gesti, e/o espressioni facciali? Ciò significa che non ha gravi preoccupazioni o problemi.",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Per la maggior parte del tempo (80%) è contento della sua vita e ha poche o nessuna preoccupazione"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Alterna giorni in cui è contento della sua vita a giorni in cui prova preoccupazione"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Mai",
+                "descrizione": "Per la maggior parte del tempo è insoddisfatto della sua vita e ha molte preoccupazioni"
+              }
+            ]
+          },
+          {
+            "codice": "BE-6",
+            "testo": "La persona ha fiducia negli altri, nel senso che condivide i suoi sentimenti o si mostra a proprio agio quando è in loro compagnia?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Si sente a suo agio con le persone che stanno nel suo ambiente, si fida di loro e si sente libero di esprimere i suoi sentimenti"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Si sente a proprio agio solo con alcune persone e si fida difficilmente di persone nuove"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "Mostra molta diffidenza nei rapporti con altre persone. Non si fida di nessuno o si fida solo di pochissime persone"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "codice": "BF",
+        "nome": "Benessere Fisico",
+        "descrizione": "Salute, cure disponibili, abilità di prendersi cura di sé, alimentazione, attività fisica",
+        "domande": [
+          {
+            "codice": "BF-1",
+            "testo": "In generale, come valuta la salute fisica della persona (ad es., ha dolori, ha malattie)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Molto buona",
+                "descrizione": "Si ammala raramente. In genere si sente bene fisicamente e ha sufficienti energie per fare le attività che desidera"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Discreta",
+                "descrizione": "Si ammala o sta male fisicamente più spesso della norma. La sua condizione fisica non gli consente di fare tutte le attività che desidera ma solo alcune"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Scarsa",
+                "descrizione": "È spesso malato o soffre di disturbi cronici (ad es., obesità). La sua salute precaria non gli consente di fare le attività che desidera"
+              }
+            ]
+          },
+          {
+            "codice": "BF-2",
+            "testo": "Quanto spesso la persona pratica sport e attività fisiche/ricreative (ad es., va in bicicletta, va a nuotare, a giocare a calcio, fa lunghe passeggiate o gite in montagna)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Pratica uno sport almeno due volte alla settimana per un'ora oppure fa esercizio fisico (ad es., va in bicicletta, a camminare) tutti i giorni per circa mezz'ora"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Pratica uno sport al massimo una volta alla settimana oppure a volte fa esercizio fisico (ad es., va in bicicletta, a camminare)"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "Non pratica sport o li pratica solo di rado. Fa esercizio fisico solo quando deve necessariamente spostarsi (ad es., cammina o va in bici per arrivare al negozio)"
+              }
+            ]
+          },
+          {
+            "codice": "BF-3",
+            "testo": "Quanto spesso la persona si rilassa e si riposa a sufficienza (ad es., si riposa sul letto o sul divano quando è stanco o affaticato, quando è stressato riesce a fare qualcosa per rilassarsi come guardare un film, leggere un fumetto, ascoltare della musica)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Spesso",
+                "descrizione": "Si rilassa e riposa a sufficienza"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Solo a volte si riposa e rilassa a sufficienza. Anche se ha occasione di rilassarsi non sempre riesce a farlo"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "È raramente o mai rilassato anche se avrebbe l'opportunità di riposarsi e rilassarsi"
+              }
+            ]
+          },
+          {
+            "codice": "BF-4",
+            "testo": "Come valuta lo stato nutrizionale della persona? La persona mangia in modo sano (ad es., in quantità adeguata e con regolarità) e cibi sani (ad es., verdura, frutta, carne, pesce) e variegati?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Buono",
+                "descrizione": "Mangia cibi sani, di vari tipo, in modo regolare e in quantità adeguata"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Discreto",
+                "descrizione": "Non sempre mangia in modo sano (ad es., mangia cibo fritto e non variegato) e tende ad esagerare nelle quantità o a mangiare troppo poco"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Scarso",
+                "descrizione": "Non mangia mai o quasi mai in modo sano. Salta spesso i pasti (ad es., colazione) o esagera nelle quantità. I pasti non sono vari e sono consumati ad orari irregolari"
+              }
+            ]
+          },
+          {
+            "codice": "BF-5",
+            "testo": "Quanto spesso la persona è preoccupato di stare male o di provare dolore (ad es., per una nuova malattia, o per il peggioramento di una malattia già esistente)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Raramente",
+                "descrizione": "Non ha paura di ammalarsi o di provare dolore (ha pochi disturbi fisici). Quando si ammala la preoccupazione non è esagerata"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "A volte ha dei disturbi fisici che lo fanno preoccupare (ad es., ha paura di provare dolore, pensa che la malattia possa farlo stare male)"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Regolarmente",
+                "descrizione": "Regolarmente è preoccupato di ammalarsi, che possa stare male o provare dolore"
+              }
+            ]
+          },
+          {
+            "codice": "BF-6",
+            "testo": "Come valuta lo stato di benessere della persona quando si sveglia e si alza? È riposato, stanco...",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Ben riposato",
+                "descrizione": "Si alza abbastanza facilmente e si sente motivato per la nuova giornata"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Un po' stanco",
+                "descrizione": "Si alza con qualche difficoltà e ha bisogno di un po' di tempo per raccogliere le energie"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Stanco",
+                "descrizione": "Si alza con molta fatica e si sente poco motivato ad iniziare la giornata. Continua a sentirsi stanco durante l'arco della giornata"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "codice": "BM",
+        "nome": "Benessere Materiale",
+        "descrizione": "Situazione finanziaria, occupazionale, modalità di vita, beni personali",
+        "domande": [
+          {
+            "codice": "BM-1",
+            "testo": "La persona (o chi si occupa di lui) ha abbastanza soldi per comprare quello di cui ha realmente bisogno (ad es., le cose da mangiare, i vestiti necessari, pagare le bollette o l'affitto)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Sempre",
+                "descrizione": "L'individuo (o chi si occupa di lui) può comprare quello di cui ha bisogno quando ne ha bisogno (ad es., cibo, vestiti, scarpe)"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "A volte accade che debba posticipare l'acquisto di ciò che gli bisogno (ad es., cibo, vestiti, scarpe) a quando avrà soldi a sufficienza"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Mai",
+                "descrizione": "Non ha il denaro per comprare le cose di cui ha bisogno (ad es., cibo, vestiti e scarpe)"
+              }
+            ]
+          },
+          {
+            "codice": "BM-2",
+            "testo": "La persona (o chi si occupa di lui) ha la possibilità di mettere da parte dei soldi in un conto bancario personale o in altre forme di risparmio che può usare?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Sempre",
+                "descrizione": "Ha una situazione economica tale da permettersi di risparmiare e fare anche spese considerevoli"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "Solo a volte l'individuo ha la possibilità di risparmiare dei soldi"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Mai",
+                "descrizione": "Non ha dei risparmi"
+              }
+            ]
+          },
+          {
+            "codice": "BM-3",
+            "testo": "La persona possiede una radio, un televisore, uno stereo, un cellulare, un computer o altri oggetti di valore?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Molti",
+                "descrizione": "Ha molti oggetti di valore e/o si ritiene soddisfatto di ciò che possiede"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Alcuni",
+                "descrizione": "Possiede solo alcuni oggetti di valore e/o desidererebbe averne di più"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Pochi o nessuno",
+                "descrizione": "Possiede pochi o nessun oggetto di valore"
+              }
+            ]
+          },
+          {
+            "codice": "BM-4",
+            "testo": "La persona ha un lavoro retribuito?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Regolare",
+                "descrizione": "Ha un lavoro regolare. Il lavoro può essere a tempo pieno o part-time (ad es., solo il sabato o solo alcuni giorni a settimana) ma deve averlo per un periodo di tempo considerevole"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Saltuario",
+                "descrizione": "Accade che abbia un lavoro pagato (anche part-time) per periodi di tempo limitati (ad es., un mese, una stagione)"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Raramente o mai",
+                "descrizione": "Non ha un lavoro pagato anche se occasionalmente capita che svolga un'attività retribuita"
+              }
+            ]
+          },
+          {
+            "codice": "BM-5",
+            "testo": "La persona possiede una casa/appartamento/stanza che può chiudere a chiave?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Sì",
+                "descrizione": "Possiede o dispone di una propria stanza/appartamento/casa che può sempre chiudere a chiave"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "Dipende",
+                "descrizione": "Possiede o dispone di una propria stanza/appartamento/casa ma non può sempre chiuderla a chiave"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "No",
+                "descrizione": "Non possiede o dispone di una propria stanza/appartamento/casa che può chiudere a chiave"
+              }
+            ]
+          },
+          {
+            "codice": "BM-6",
+            "testo": "La persona ha abbastanza soldi per scegliere quello che preferisce fra le cose che vuole comprare o chi si occupa di lui ha abbastanza soldi per fargli scegliere quello che preferisce (ad es., un vestito che costa di più, dei libri, cd o giochi, collane)?",
+            "opzioni": [
+              {
+                "punteggio": 3,
+                "etichetta": "Sempre",
+                "descrizione": "Può scegliere quello che preferisce tra le cose che vuole acquistare (ad es., scegliere un vestito più bello o di qualità migliore) e non deve tenere in considerazione solo il prezzo acquistando quello più economico"
+              },
+              {
+                "punteggio": 2,
+                "etichetta": "A volte",
+                "descrizione": "In alcuni casi può scegliere quello che preferisce tra le cose che vuole, ma sa che scegliendo un oggetto più costoso dovrà poi rinunciare ad altri oggetti che desidera o comunque scegliere uno meno caro"
+              },
+              {
+                "punteggio": 1,
+                "etichetta": "Mai",
+                "descrizione": "È sempre costretto a considerare prima di tutto il prezzo e deve sempre scegliere la soluzione meno costosa"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "note_operative_generali": [
+      "Compilare con intervista semi-strutturata a un caregiver (genitore, familiare, educatore, psicologo) che conosce approfonditamente la persona",
+      "Fornire esempi concreti e verificare la comprensione della domanda",
+      "Assegnare un punteggio a tutti gli item della scala",
+      "Non lasciarsi influenzare da cambiamenti transitori o momentanei",
+      "Per D-5: se la persona non ha un partner, attribuire il punteggio 'Sì' (opzione 3, punteggio 3)",
+      "Per AD-5: il fatto che i soldi siano spesi da altri nel suo interesse non è sufficiente per rispondere 'Più o meno' → va segnato 'No'"
+    ]
+  }
+}

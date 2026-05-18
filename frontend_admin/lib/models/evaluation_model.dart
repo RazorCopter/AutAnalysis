@@ -41,8 +41,8 @@ class DomainScore {
     return DomainScore(
       codice: json['codice'] ?? '',
       etichetta: json['etichetta'] ?? '',
-      punteggio: (json['punteggio_totale'] ?? 0) as int,
-      numDomande: (json['num_domande'] ?? 0) as int,
+      punteggio: (json['punteggio_totale'] as num?)?.toInt() ?? 0,
+      numDomande: (json['num_domande'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -70,11 +70,11 @@ class DomainAnalysis {
     return DomainAnalysis(
       codice: json['codice'] ?? '',
       etichetta: json['etichetta'] ?? '',
-      punteggioDiretto: (json['punteggio_diretto'] ?? 0) as int,
-      punteggioStandard: json['punteggio_standard'] as int?,
-      percentileDominio: json['percentile_dominio'] as int?,
+      punteggioDiretto: (json['punteggio_diretto'] as num?)?.toInt() ?? 0,
+      punteggioStandard: (json['punteggio_standard'] as num?)?.toInt(),
+      percentileDominio: (json['percentile_dominio'] as num?)?.toInt(),
       fascia: json['fascia'] as String?,
-      numDomande: (json['num_domande'] ?? 0) as int,
+      numDomande: (json['num_domande'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -85,6 +85,7 @@ class PsychometricAnalysis {
   final String idScala;
   final String scalaNome;
   final List<DomainAnalysis> domini;
+  final int? sommaPunteggiStandard;
   final int? indiceQv;
   final int? percentile;
   final String? fasciaQv;
@@ -95,6 +96,7 @@ class PsychometricAnalysis {
     required this.idScala,
     required this.scalaNome,
     required this.domini,
+    this.sommaPunteggiStandard,
     this.indiceQv,
     this.percentile,
     this.fasciaQv,
@@ -106,8 +108,9 @@ class PsychometricAnalysis {
       idPaziente: json['id_paziente'] ?? '',
       idScala: json['id_scala'] ?? '',
       scalaNome: json['scala_nome'] ?? '',
-      indiceQv: json['indice_qv'] as int?,
-      percentile: json['percentile'] as int?,
+      sommaPunteggiStandard: (json['somma_punteggi_standard'] as num?)?.toInt(),
+      indiceQv: (json['indice_qv'] as num?)?.toInt(),
+      percentile: (json['percentile'] as num?)?.toInt(),
       fasciaQv: json['fascia_qv'] as String?,
       domini: (json['domini'] as List?)
               ?.map((e) => DomainAnalysis.fromJson(e as Map<String, dynamic>))
@@ -145,7 +148,7 @@ class AggregatedEvaluation {
       idValutazione: json['id_valutazione'] ?? '',
       idPaziente: json['id_paziente'] ?? '',
       idScala: json['id_scala'] ?? '',
-      anno: (json['anno'] ?? 0) as int,
+      anno: (json['anno'] as num?)?.toInt() ?? 0,
       dataCompilazione: json['data_compilazione']?.toString() ?? '',
       nomeOperatore: json['nome_operatore'] ?? '',
       nomeIntervistato: json['nome_intervistato'] as String?,

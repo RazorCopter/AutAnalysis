@@ -1,9 +1,9 @@
-from fastapi import APIRouter, HTTPException, Query, status, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, status, UploadFile, File
 from fastapi.responses import StreamingResponse
 from typing import List
 from bson import ObjectId
 from .models import Scale, Evaluation, Patient, AppSettings, Section, Question, Option, DOMINI_POS, AggregatedEvaluation, EvaluationUpdateRequest
-from .database import evaluations_collection, database, settings_collection, patients_collection, scales_collection, users_collection
+from .database import evaluations_collection, settings_collection, patients_collection, scales_collection, users_collection
 from .pdf_generator import generate_evaluation_pdf
 from .analytics import compute_psychometric_analysis, compute_direct_scores, build_domain_map
 from datetime import datetime, timezone
@@ -180,15 +180,12 @@ async def import_scale(file: UploadFile = File(...)):
     )
 
     scale_dict = scale.model_dump()
-
-    extra_keys = {"scoring_tables", "struttura_punteggi", "profilo_grafico",
-                  "note_operative", "proprieta_psicometriche",
-                  "autori", "anno", "editore", "versione_italiana",
-                  "target", "eta", "informatori", "tempo_somministrazione",
-                  "sottotitolo"}
-    for key in extra_keys:
-        if key in scala_data:
-            scale_dict[key] = scala_data[key]
+    extra_metadata = {
+        key: value
+        for key, value in scala_data.items()
+        if key not in {"id", "nome", "descrizione", "domini"}
+    }
+    scale_dict.update(extra_metadata)
 
     await scales_collection.replace_one(
         {"id": scale_id}, scale_dict, upsert=True
@@ -209,13 +206,13 @@ async def update_scale(id: str, scale: Scale):
     scale_dict = scale.model_dump()
     existing = await scales_collection.find_one({"id": id})
     if existing:
-        for key in ("scoring_tables", "struttura_punteggi", "profilo_grafico",
-                     "note_operative", "proprieta_psicometriche",
-                     "autori", "anno", "editore", "versione_italiana",
-                     "target", "eta", "informatori", "tempo_somministrazione",
-                     "sottotitolo"):
-            if key in existing:
-                scale_dict[key] = existing[key]
+        # Mantiene qualsiasi metadato extra già salvato nel documento Mongo.
+        preserved_metadata = {
+            key: value
+            for key, value in existing.items()
+            if key not in {"_id", "id", "nome", "descrizione", "sezioni"}
+        }
+        scale_dict.update(preserved_metadata)
     result = await scales_collection.replace_one({"id": id}, scale_dict)
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Protocollo non trovato")
