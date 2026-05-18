@@ -607,7 +607,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     return _buildQvSummaryCard();
   }
 
-  // ─── Painter verticale QV — una riga per dominio, barra orizzontale fullest width ──
+  // ─── Grafico visivo Qualità della Vita (CustomPainter) ─────────────────────
   Widget _buildQvGraphicTable() {
     if (!_shouldUseSanMartinUi || _analysis == null) return const SizedBox();
 
@@ -631,7 +631,9 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
               builder: (context, constraints) {
                 return SizedBox(
                   width: constraints.maxWidth,
-                  child: _QolVerticalPainter(domains: _analysis!.domini),
+                  child: _QualityOfLifePainter(
+                    domains: _analysis!.domini,
+                  ),
                 );
               },
             ),
@@ -1468,174 +1470,140 @@ class _QolHorizontalTablePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (domains.isEmpty) return;
+    const labelWidth = 72.0;
+    const headerHeight = 44.0;
+    const rowHeight = 48.0;
+    const barAreaX = labelWidth + 8;
+    const barAreaWidth = 520.0;
+    const scoreBoxWidth = 52.0;
+    const rightX = barAreaX + barAreaWidth + scoreBoxWidth + 16;
+    const numRows = 5;
 
-    const labelColW = 96.0;
-    const scoreBoxW = 52.0;
-    const bottomLabelH = 52.0;
-    const headerH = 30.0;
-    const totalCols = 20;
-    final barAreaW = size.width - labelColW - scoreBoxW - 8;
-    final bandW = barAreaW / totalCols;
-    final rowH = (size.height - headerH - bottomLabelH - 8) / _fascie.length;
-
-    final headerBgPaint = Paint()..color = const Color(0xFF1A237E);
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, headerH), headerBgPaint);
-
-    final axisTickStyle = const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold);
-    _drawText(canvas, '1', labelColW + bandW * 0, headerH / 2, axisTickStyle, anchor: Alignment.center);
-    _drawText(canvas, '5', labelColW + bandW * 4, headerH / 2, axisTickStyle, anchor: Alignment.center);
-    _drawText(canvas, '10', labelColW + bandW * 9, headerH / 2, axisTickStyle, anchor: Alignment.center);
-    _drawText(canvas, '15', labelColW + bandW * 14, headerH / 2, axisTickStyle, anchor: Alignment.center);
-    _drawText(canvas, '20', labelColW + bandW * 19, headerH / 2, axisTickStyle, anchor: Alignment.center);
-
-    for (var fi = 0; fi < _fascie.length; fi++) {
-      final band = _fascie[fi];
-      final y = headerH + fi * rowH;
-
-      final bandBgPaint = Paint()
-        ..color = band.color.withValues(alpha: 0.13)
-        ..style = PaintingStyle.fill;
-      canvas.drawRect(Rect.fromLTWH(labelColW, y, barAreaW + scoreBoxW + 4, rowH), bandBgPaint);
-
-      final bandLabelStyle = TextStyle(
-        color: band.color,
-        fontSize: 11,
-        fontWeight: FontWeight.bold,
-      );
-      _drawText(canvas, band.label, labelColW - 4, y + rowH / 2, bandLabelStyle, anchor: Alignment.centerRight);
-
-      final rangeStyle = TextStyle(
-        color: band.color.withValues(alpha: 0.7),
-        fontSize: 9,
-        fontWeight: FontWeight.w500,
-      );
-      _drawText(canvas, '${band.min}', labelColW, y + rowH / 2, rangeStyle, anchor: Alignment.centerLeft);
-      _drawText(canvas, '${band.max}', labelColW + barAreaW - 2, y + rowH / 2, rangeStyle, anchor: Alignment.centerRight);
-
-      final gridPaint = Paint()
-        ..color = const Color(0xFFDDE7F8)
-        ..strokeWidth = 0.5;
-      canvas.drawLine(Offset(labelColW, y), Offset(labelColW + barAreaW, y), gridPaint);
-      canvas.drawLine(Offset(labelColW, y + rowH), Offset(labelColW + barAreaW, y + rowH), gridPaint);
-
-      for (var t = 0; t <= totalCols; t++) {
-        final vLineX = labelColW + t * bandW;
-        if (t % 5 == 0) {
-          canvas.drawLine(Offset(vLineX, y), Offset(vLineX, y + rowH), gridPaint..color = band.color.withValues(alpha: 0.25));
-        } else {
-          canvas.drawLine(Offset(vLineX, y), Offset(vLineX, y + rowH), gridPaint..color = const Color(0xFFDDE7F8));
-        }
-      }
-    }
-
-    final rightBorderPaint = Paint()
+    final headerPaint = Paint()..color = const Color(0xFF1A237E);
+    final gridPaint = Paint()
       ..color = const Color(0xFFDDE7F8)
-      ..strokeWidth = 0.5;
-    canvas.drawLine(
-      Offset(labelColW + barAreaW, headerH),
-      Offset(labelColW + barAreaW, headerH + _fascie.length * rowH),
-      rightBorderPaint,
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, rightX, headerHeight),
+      Paint()..color = const Color(0xFFF0F5FF),
     );
 
-    for (var di = 0; di < domains.length; di++) {
-      final domain = domains[di];
-      final colX = labelColW + (di + 0.5) * (barAreaW / domains.length);
-      final domColor = _domainColors[di % _domainColors.length];
-      final stdScore = domain.punteggioStandard;
-      final fasciaColor = _getFasciaColor(domain.fascia);
+    final headerStyle = TextStyle(
+      color: Colors.white,
+      fontSize: 12,
+      fontWeight: FontWeight.bold,
+    );
 
-      for (var fi = 0; fi < _fascie.length; fi++) {
-        final band = _fascie[fi];
-        final cellY = headerH + fi * rowH;
-        final leftEdge = labelColW + di * (barAreaW / domains.length);
-        final rightEdge = labelColW + (di + 1) * (barAreaW / domains.length);
+    _drawText(canvas, 'Dominio', 8, headerHeight / 2, headerStyle, anchor: Alignment.centerLeft);
+    _drawText(canvas, '1', barAreaX + barAreaWidth * 0 / 4, headerHeight / 2, headerStyle, anchor: Alignment.center);
+    _drawText(canvas, '5', barAreaX + barAreaWidth * 1 / 4, headerHeight / 2, headerStyle, anchor: Alignment.center);
+    _drawText(canvas, '10', barAreaX + barAreaWidth * 2 / 4, headerHeight / 2, headerStyle, anchor: Alignment.center);
+    _drawText(canvas, '15', barAreaX + barAreaWidth * 3 / 4, headerHeight / 2, headerStyle, anchor: Alignment.center);
+    _drawText(canvas, '20', barAreaX + barAreaWidth, headerHeight / 2, headerStyle, anchor: Alignment.center);
+    _drawText(canvas, 'P.STD', barAreaX + barAreaWidth + 16, headerHeight / 2, headerStyle, anchor: Alignment.centerLeft);
 
-        final cellBgPaint = Paint()
-          ..color = domColor.withValues(alpha: 0.06)
+    for (var i = 0; i <= 4; i++) {
+      final x = barAreaX + (barAreaWidth * i / 4);
+      canvas.drawLine(
+        Offset(x, headerHeight),
+        Offset(x, headerHeight + domains.length * rowHeight),
+        gridPaint,
+      );
+    }
+
+    for (var d = 0; d < domains.length; d++) {
+      final domain = domains[d];
+      final y = headerHeight + (d * rowHeight);
+      final rowPaint = Paint()..color = (d.isOdd) ? const Color(0xFFF8FBFF) : Colors.white;
+      canvas.drawRect(Rect.fromLTWH(0, y, rightX, rowHeight), rowPaint);
+      canvas.drawLine(Offset(0, y + rowHeight), Offset(rightX, y + rowHeight), gridPaint);
+
+      final domainColor = _getDomainColor(d);
+      final labelStyle = TextStyle(
+        color: domainColor,
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+      );
+      _drawText(canvas, domain.codice, 8, y + rowHeight / 2, labelStyle, anchor: Alignment.centerLeft);
+
+      for (var f = 0; f < _fascie.length; f++) {
+        final band = _fascie[f];
+        final bandY = y + (f * rowHeight / _fascie.length);
+        final bandHeight = rowHeight / _fascie.length;
+
+        final bandPaint = Paint()
+          ..color = band.color.withValues(alpha: 0.18)
           ..style = PaintingStyle.fill;
-        canvas.drawRect(Rect.fromLTWH(leftEdge + 0.5, cellY + 0.5, (rightEdge - leftEdge) - 1, rowH - 1), cellBgPaint);
+        canvas.drawRect(
+          Rect.fromLTWH(barAreaX, bandY, barAreaWidth, bandHeight),
+          bandPaint,
+        );
 
-        final borderPaint = Paint()
-          ..color = const Color(0xFFDDE7F8)
-          ..strokeWidth = 0.5;
-        canvas.drawLine(Offset(leftEdge, cellY), Offset(leftEdge, cellY + rowH), borderPaint);
-        canvas.drawLine(Offset(rightEdge, cellY), Offset(rightEdge, cellY + rowH), borderPaint);
+        final bandLabelStyle = TextStyle(
+          color: band.color.withValues(alpha: 0.6),
+          fontSize: 8,
+          fontWeight: FontWeight.w500,
+        );
+        _drawText(canvas, band.label, barAreaX + 4, bandY + bandHeight / 2, bandLabelStyle, anchor: Alignment.centerLeft);
+
+        final bandRightStyle = TextStyle(
+          color: band.color.withValues(alpha: 0.6),
+          fontSize: 8,
+          fontWeight: FontWeight.w500,
+        );
+        _drawText(canvas, '${band.min}-${band.max}', barAreaX + barAreaWidth - 4, bandY + bandHeight / 2, bandRightStyle, anchor: Alignment.centerRight);
       }
 
+      canvas.drawRect(Rect.fromLTWH(barAreaX, y, barAreaWidth, rowHeight), gridPaint);
+
+      final stdScore = domain.punteggioStandard;
       if (stdScore != null) {
-        final normX = labelColW + (stdScore / 20.0) * barAreaW;
-        final scoreY = headerH;
-        final scoreH = _fascie.length * rowH;
+        final scoreX = barAreaX + (stdScore / 20.0) * barAreaWidth;
+        final bandColor = _getFasciaColor(domain.fascia);
 
-        final linePaint = Paint()
-          ..color = fasciaColor
-          ..strokeWidth = 2.5
-          ..style = PaintingStyle.stroke;
-        canvas.drawLine(Offset(normX, scoreY), Offset(normX, scoreY + scoreH), linePaint);
-
-        final fillPaint = Paint()
-          ..color = fasciaColor.withValues(alpha: 0.15)
+        final circlePaint = Paint()
+          ..color = bandColor
           ..style = PaintingStyle.fill;
-        canvas.drawRect(Rect.fromLTWH(normX - 4, scoreY, 8, scoreH), fillPaint);
+        canvas.drawCircle(Offset(scoreX, y + rowHeight / 2), 13, circlePaint);
 
-        final outerCirclePaint = Paint()
-          ..color = fasciaColor
+        final circleBorderPaint = Paint()
+          ..color = bandColor
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.5;
-        canvas.drawCircle(Offset(normX, scoreY + scoreH / 2), 11, outerCirclePaint);
+        canvas.drawCircle(Offset(scoreX, y + rowHeight / 2), 16, circleBorderPaint);
 
-        final innerFillPaint = Paint()
+        final whiteCirclePaint = Paint()
           ..color = Colors.white
           ..style = PaintingStyle.fill;
-        canvas.drawCircle(Offset(normX, scoreY + scoreH / 2), 8, innerFillPaint);
-        canvas.drawCircle(Offset(normX, scoreY + scoreH / 2), 8, outerCirclePaint);
+        canvas.drawCircle(Offset(scoreX, y + rowHeight / 2), 11, whiteCirclePaint);
+        canvas.drawCircle(Offset(scoreX, y + rowHeight / 2), 11, circleBorderPaint);
 
         final scoreTextStyle = TextStyle(
           color: fasciaColor,
           fontSize: 12,
           fontWeight: FontWeight.bold,
         );
-        _drawText(canvas, stdScore.toString(), normX, scoreY + scoreH / 2, scoreTextStyle, anchor: Alignment.center);
+        _drawText(canvas, stdScore.toString(), scoreX, y + rowHeight / 2, scoreTextStyle, anchor: Alignment.center);
       }
 
-      final colLeft = labelColW + di * (barAreaW / domains.length);
-      final colRight = labelColW + (di + 1) * (barAreaW / domains.length);
-      final labelX = (colLeft + colRight) / 2;
-
-      final domLabelBgPaint = Paint()
-        ..color = domColor.withValues(alpha: 0.1)
-        ..style = PaintingStyle.fill;
-      canvas.drawRect(
-        Rect.fromLTWH(colLeft, headerH + _fascie.length * rowH, colRight - colLeft, bottomLabelH - 2),
-        domLabelBgPaint,
-      );
-
-      final bottomBorderPaint = Paint()
-        ..color = const Color(0xFFDDE7F8)
-        ..strokeWidth = 0.5;
-      canvas.drawLine(
-        Offset(colLeft, headerH + _fascie.length * rowH),
-        Offset(colRight, headerH + _fascie.length * rowH),
-        bottomBorderPaint,
-      );
-
-      final domLabelStyle = TextStyle(
-        color: domColor,
-        fontSize: 9,
+      final scoreTextStyle = TextStyle(
+        color: _getFasciaColor(domain.fascia),
+        fontSize: 13,
         fontWeight: FontWeight.bold,
       );
-      _drawText(canvas, domain.codice, labelX, headerH + _fascie.length * rowH + 12, domLabelStyle, anchor: Alignment.center);
+      final scoreText = domain.punteggioStandard?.toString() ?? '—';
+      _drawText(canvas, scoreText, barAreaX + barAreaWidth + scoreBoxWidth / 2, y + rowHeight / 2, scoreTextStyle, anchor: Alignment.center);
 
-      final domNameStyle = TextStyle(
-        color: const Color(0xFF718096),
-        fontSize: 8,
-        fontWeight: FontWeight.w400,
+      canvas.drawLine(
+        Offset(barAreaX + barAreaWidth, y),
+        Offset(barAreaX + barAreaWidth, y + rowHeight),
+        gridPaint,
       );
-      _drawWrappedText(canvas, domain.etichetta, colLeft + 2, colRight - 2, headerH + _fascie.length * rowH + 24, domNameStyle);
     }
 
-    final legendY = headerH + _fascie.length * rowH + bottomLabelH + 6;
+    final legendY = headerHeight + domains.length * rowHeight + 12;
     const legendItems = [
       ('Molto Basso', Color(0xFFD32F2F)),
       ('Basso',       Color(0xFFF57C00)),
@@ -1658,8 +1626,8 @@ class _QolHorizontalTablePainter extends CustomPainter {
         fontSize: 9,
         fontWeight: FontWeight.w500,
       );
-      _drawText(canvas, item.$1, legendX + 14, legendY + 5, legendStyle, anchor: Alignment.centerLeft);
-      legendX += 82;
+      _drawText(canvas, item.$1, legendX + 16, legendY + 6, legendStyle, anchor: Alignment.centerLeft);
+      legendX += 72;
     }
   }
 
@@ -1675,245 +1643,13 @@ class _QolHorizontalTablePainter extends CustomPainter {
     tp.paint(canvas, Offset(dx, dy));
   }
 
-  void _drawWrappedText(Canvas canvas, String text, double left, double right, double y, TextStyle style) {
-    final maxW = right - left - 4;
-    final words = text.split(' ');
-    final lines = <String>[];
-    var current = '';
-
-    for (final word in words) {
-      final test = current.isEmpty ? word : '$current $word';
-      final tp = TextPainter(text: TextSpan(text: test, style: style), textDirection: TextDirection.ltr)..layout();
-      if (tp.width <= maxW) {
-        current = test;
-      } else {
-        if (current.isNotEmpty) lines.add(current);
-        current = word;
-      }
-    }
-    if (current.isNotEmpty) lines.add(current);
-
-    const lineH = 11.0;
-    final startY = y - ((lines.length - 1) * lineH / 2);
-    for (var i = 0; i < lines.length; i++) {
-      final tp = TextPainter(text: TextSpan(text: lines[i], style: style), textDirection: TextDirection.ltr)..layout();
-      tp.paint(canvas, Offset(left + (maxW - tp.width) / 2, startY + i * lineH));
-    }
-  }
-
-  Color _getFasciaColor(String? fascia) {
-    switch (fascia) {
-      case 'Molto Basso': return const Color(0xFFD32F2F);
-      case 'Basso':       return const Color(0xFFF57C00);
-      case 'Medio':       return const Color(0xFFFBC02D);
-      case 'Alto':        return const Color(0xFF7CB342);
-      case 'Molto Alto':  return const Color(0xFF388E3C);
-      default:            return const Color(0xFF718096);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _QolHorizontalTablePainter oldDelegate) => true;
-}
-
-class _QolVerticalPainter extends StatelessWidget {
-  final List<DomainAnalysis> domains;
-
-  const _QolVerticalPainter({required this.domains});
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      size: Size.infinite,
-      painter: _QolVerticalTablePainter(domains: domains),
-    );
-  }
-}
-
-class _QolVerticalTablePainter extends CustomPainter {
-  final List<DomainAnalysis> domains;
-
-  static const List<_FasciaBand> _fascie = [
-    _FasciaBand(label: 'Molto Alto',  min: 16, max: 20, color: Color(0xFF388E3C)),
-    _FasciaBand(label: 'Alto',       min: 13, max: 15, color: Color(0xFF7CB342)),
-    _FasciaBand(label: 'Medio',     min:  8, max: 12, color: Color(0xFFFBC02D)),
-    _FasciaBand(label: 'Basso',     min:  5, max:  7, color: Color(0xFFF57C00)),
-    _FasciaBand(label: 'Molto Basso',min:  1, max:  4, color: Color(0xFFD32F2F)),
-  ];
-
-  static const List<Color> _domainColors = [
-    Color(0xFF1A237E), Color(0xFFE53935), Color(0xFF43A047),
-    Color(0xFFFB8C00), Color(0xFF8E24AA), Color(0xFF00ACC1),
-    Color(0xFF3949AB), Color(0xFFF4511E),
-  ];
-
-  _QolVerticalTablePainter({required this.domains});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (domains.isEmpty) return;
-
-    const leftLabelW = 96.0;
-    const rightLabelW = 56.0;
-    const headerH = 32.0;
-    const barAreaX = leftLabelW + 8;
-    final barAreaW = size.width - barAreaX - rightLabelW - 8;
-    final bandH = 22.0;
-    final rowH = bandH * _fascie.length;
-    final rightX = barAreaX + barAreaW + rightLabelW + 8;
-    const bandLabelW = 96.0;
-
-    final headerBgPaint = Paint()..color = const Color(0xFF1A237E);
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, headerH), headerBgPaint);
-
-    final axisTickStyle = const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold);
-    _drawText(canvas, 'Dominio', 8, headerH / 2, axisTickStyle, anchor: Alignment.centerLeft);
-    _drawText(canvas, '1', barAreaX + bandLabelW * 0, headerH / 2, axisTickStyle, anchor: Alignment.centerLeft);
-    _drawText(canvas, '5', barAreaX + bandLabelW * 4, headerH / 2, axisTickStyle, anchor: Alignment.centerLeft);
-    _drawText(canvas, '10', barAreaX + bandLabelW * 9, headerH / 2, axisTickStyle, anchor: Alignment.centerLeft);
-    _drawText(canvas, '15', barAreaX + bandLabelW * 14, headerH / 2, axisTickStyle, anchor: Alignment.centerLeft);
-    _drawText(canvas, '20', barAreaX + barAreaW - 4, headerH / 2, axisTickStyle, anchor: Alignment.centerRight);
-    _drawText(canvas, 'P.Std', rightX - rightLabelW + 4, headerH / 2, axisTickStyle, anchor: Alignment.centerLeft);
-
-    for (var di = 0; di < domains.length; di++) {
-      final domain = domains[di];
-      final y = headerH + di * rowH;
-      final domColor = _domainColors[di % _domainColors.length];
-      final stdScore = domain.punteggioStandard;
-      final fasciaColor = _getFasciaColor(domain.fascia);
-
-      final rowBgPaint = Paint()
-        ..color = (di.isOdd) ? const Color(0xFFF5F8FF) : Colors.white
-        ..style = PaintingStyle.fill;
-      canvas.drawRect(Rect.fromLTWH(0, y, rightX, rowH), rowBgPaint);
-
-      for (var fi = 0; fi < _fascie.length; fi++) {
-        final band = _fascie[fi];
-        final bandY = y + fi * bandH;
-
-        final bandBgPaint = Paint()
-          ..color = band.color.withValues(alpha: 0.14)
-          ..style = PaintingStyle.fill;
-        canvas.drawRect(Rect.fromLTWH(barAreaX, bandY, barAreaW, bandH), bandBgPaint);
-
-        final rangeStyle = TextStyle(
-          color: band.color.withValues(alpha: 0.7),
-          fontSize: 8,
-          fontWeight: FontWeight.w500,
-        );
-        _drawText(canvas, '${band.min}', barAreaX + 3, bandY + bandH / 2, rangeStyle, anchor: Alignment.centerLeft);
-        _drawText(canvas, '${band.max}', barAreaX + barAreaW - 3, bandY + bandH / 2, rangeStyle, anchor: Alignment.centerRight);
-      }
-
-      final gridPaint = Paint()
-        ..color = const Color(0xFFDDE7F8)
-        ..strokeWidth = 0.5;
-
-      for (var fi = 0; fi <= _fascie.length; fi++) {
-        final lineY = y + fi * bandH;
-        canvas.drawLine(Offset(barAreaX, lineY), Offset(barAreaX + barAreaW, lineY), gridPaint);
-      }
-
-      for (var t = 0; t <= 20; t++) {
-        if (t % 5 == 0) {
-          final x = barAreaX + (t / 20.0) * barAreaW;
-          canvas.drawLine(
-            Offset(x, y), Offset(x, y + rowH),
-            gridPaint..color = band.color.withValues(alpha: 0.3),
-          );
-        }
-      }
-
-      canvas.drawRect(Rect.fromLTWH(barAreaX, y, barAreaW, rowH), gridPaint..color = const Color(0xFFDDE7F8));
-
-      if (stdScore != null) {
-        final scoreX = barAreaX + (stdScore / 20.0) * barAreaW;
-
-        final outerCirclePaint = Paint()
-          ..color = fasciaColor
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.5;
-        canvas.drawCircle(Offset(scoreX, y + rowH / 2), 13, outerCirclePaint);
-
-        final fillPaint = Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.fill;
-        canvas.drawCircle(Offset(scoreX, y + rowH / 2), 9, fillPaint);
-        canvas.drawCircle(Offset(scoreX, y + rowH / 2), 9, outerCirclePaint);
-
-        final scoreTextStyle = TextStyle(
-          color: fasciaColor,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        );
-        _drawText(canvas, stdScore.toString(), scoreX, y + rowH / 2, scoreTextStyle, anchor: Alignment.center);
-      }
-
-      final domLabelStyle = TextStyle(
-        color: domColor,
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
-      );
-      _drawText(canvas, domain.codice, 6, y + rowH / 2, domLabelStyle, anchor: Alignment.centerLeft);
-
-      final rightScoreStyle = TextStyle(
-        color: fasciaColor,
-        fontSize: 13,
-        fontWeight: FontWeight.bold,
-      );
-      final scoreText = domain.punteggioStandard?.toString() ?? '—';
-      _drawText(canvas, scoreText, barAreaX + barAreaW + rightLabelW / 2, y + rowH / 2, rightScoreStyle, anchor: Alignment.center);
-
-      canvas.drawLine(
-        Offset(barAreaX + barAreaW, y),
-        Offset(barAreaX + barAreaW, y + rowH),
-        gridPaint..color = const Color(0xFFDDE7F8),
-      );
-      canvas.drawLine(
-        Offset(0, y + rowH),
-        Offset(rightX, y + rowH),
-        gridPaint..color = const Color(0xFFDDE7F8),
-      );
-    }
-
-    final legendY = headerH + domains.length * rowH + 10;
-    const legendItems = [
-      ('Molto Basso', Color(0xFFD32F2F)),
-      ('Basso',       Color(0xFFF57C00)),
-      ('Medio',       Color(0xFFFBC02D)),
-      ('Alto',        Color(0xFF7CB342)),
-      ('Molto Alto',  Color(0xFF388E3C)),
+  Color _getDomainColor(int index) {
+    const colors = [
+      Color(0xFF1A237E), Color(0xFFE53935), Color(0xFF43A047),
+      Color(0xFFFB8C00), Color(0xFF8E24AA), Color(0xFF00ACC1),
+      Color(0xFF3949AB), Color(0xFFF4511E),
     ];
-
-    var legendX = 0.0;
-    for (final item in legendItems) {
-      final legendPaint = Paint()
-        ..color = item.$2
-        ..style = PaintingStyle.fill;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH(legendX, legendY, 10, 10), const Radius.circular(2)),
-        legendPaint,
-      );
-      final legendStyle = TextStyle(
-        color: const Color(0xFF718096),
-        fontSize: 9,
-        fontWeight: FontWeight.w500,
-      );
-      _drawText(canvas, item.$1, legendX + 14, legendY + 5, legendStyle, anchor: Alignment.centerLeft);
-      legendX += 80;
-    }
-  }
-
-  void _drawText(Canvas canvas, String text, double x, double y, TextStyle style, {Alignment anchor = Alignment.center}) {
-    final tp = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    double dx = x;
-    double dy = y - tp.height / 2;
-    if (anchor == Alignment.center) dx -= tp.width / 2;
-    if (anchor == Alignment.centerRight) dx -= tp.width;
-    tp.paint(canvas, Offset(dx, dy));
+    return colors[index % colors.length];
   }
 
   Color _getFasciaColor(String? fascia) {
@@ -1928,5 +1664,21 @@ class _QolVerticalTablePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _QolVerticalTablePainter oldDelegate) => true;
+  bool shouldRepaint(covariant _QualityOfLifeTablePainter oldDelegate) {
+    return true;
+  }
+}
+
+class _FasciaBand {
+  final String label;
+  final int min;
+  final int max;
+  final Color color;
+
+  const _FasciaBand({
+    required this.label,
+    required this.min,
+    required this.max,
+    required this.color,
+  });
 }
