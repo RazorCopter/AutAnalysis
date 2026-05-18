@@ -60,21 +60,59 @@ def _get_domain_conversion_table(
     domain_code: str,
     num_domande: int,
     table_a: Dict[str, Any],
-) -> Dict[str, dict]:
+) -> Dict[str, Any]:
     """Seleziona la tabella di conversione corretta per il dominio corrente."""
     domini_12 = table_a.get("domini_con_12_item", {})
     dominio_11 = table_a.get("dominio_IS_con_11_item", {})
 
-    conv_12 = domini_12.get("conversione", {})
-    conv_11 = dominio_11.get("conversione", {})
-
     # San Martín ha 7 domini da 12 item e un dominio da 11 item.
     # Privilegiamo il numero di item effettivamente aggregati, con fallback sul codice.
-    if num_domande == 11 and conv_11:
-        return conv_11
-    if domain_code.upper() == "IS" and conv_11:
-        return conv_11
-    return conv_12
+    if num_domande == 11 and dominio_11:
+        return dominio_11
+    if domain_code.upper() == "IS" and dominio_11:
+        return dominio_11
+    return domini_12
+
+
+def _lookup_conversion_entry(
+    score: int,
+    table_section: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    """
+    Recupera la riga di conversione in modo robusto:
+    1. match esatto sulla chiave stringa;
+    2. clamp sul range dichiarato della tabella;
+    3. fallback al vicino più prossimo se il JSON fosse incompleto.
+    """
+    conversion_map = table_section.get("conversione", {})
+    if not conversion_map:
+        return None
+
+    exact_key = str(score)
+    if exact_key in conversion_map:
+        return conversion_map[exact_key]
+
+    numeric_keys = sorted(
+        int(key)
+        for key in conversion_map.keys()
+        if str(key).lstrip("-").isdigit()
+    )
+    if not numeric_keys:
+        return None
+
+    declared_range = table_section.get("punteggi_diretti_range")
+    if isinstance(declared_range, list) and len(declared_range) == 2:
+        min_score, max_score = int(declared_range[0]), int(declared_range[1])
+    else:
+        min_score, max_score = numeric_keys[0], numeric_keys[-1]
+
+    clamped_score = min(max(score, min_score), max_score)
+    clamped_key = str(clamped_score)
+    if clamped_key in conversion_map:
+        return conversion_map[clamped_key]
+
+    closest_key = min(numeric_keys, key=lambda key: abs(key - score))
+    return conversion_map.get(str(closest_key))
 
 
 def _build_domain_analyses(
@@ -91,16 +129,24 @@ def _build_domain_analyses(
         domain_code = domain["codice"]
         num_domande = domain["num_domande"]
 
-        conversion_table = _get_domain_conversion_table(
+        table_section = _get_domain_conversion_table(
             domain_code=domain_code,
             num_domande=num_domande,
             table_a=table_a,
         )
-
-        entry = conversion_table.get(str(raw_score), {})
+        entry = _lookup_conversion_entry(
+            score=raw_score,
+            table_section=table_section,
+        ) or {}
         standard_score = entry.get("std")
         percentile = entry.get("perc")
         fascia = _std_to_fascia(standard_score) if standard_score is not None else None
+
+        print(
+            f"DEBUG ANALYTICS - Dominio {domain_code} - "
+            f"Grezzo: {raw_score} (item: {num_domande}) -> "
+            f"Standard calcolato: {standard_score}, Percentile: {percentile}"
+        )
 
         domain_analyses.append({
             "codice": domain_code,
@@ -173,7 +219,6 @@ def compute_psychometric_analysis(
 
     table_a = scoring.get("tabella_A_conversione_punteggi_diretti_standard", {})
     table_b = scoring.get("tabella_B_indice_qdv", {})
-    conv_qdv = table_b.get("conversione", {})
     domain_analyses, total_standard = _build_domain_analyses(
         direct_scores=direct_scores,
         table_a=table_a,
@@ -183,13 +228,19 @@ def compute_psychometric_analysis(
     percentile = None
     fascia_qv = None
 
-    if conv_qdv and total_standard is not None:
-        total_str = str(total_standard)
-        if total_str in conv_qdv:
-            entry = conv_qdv[total_str]
-            indice_qv = entry.get("indice")
-            percentile = entry.get("perc")
-            fascia_qv = _indice_to_fascia(indice_qv)
+    if total_standard is not None:
+        qdv_entry = _lookup_conversion_entry(
+            score=total_standard,
+            table_section=table_b,
+        ) or {}
+        indice_qv = qdv_entry.get("indice")
+        percentile = qdv_entry.get("perc")
+        fascia_qv = _indice_to_fascia(indice_qv) if indice_qv is not None else None
+
+        print(
+            f"DEBUG ANALYTICS - Somma standard: {total_standard} -> "
+            f"Indice QV: {indice_qv}, Percentile: {percentile}, Fascia: {fascia_qv}"
+        )
 
     return {
         "domini": domain_analyses,
