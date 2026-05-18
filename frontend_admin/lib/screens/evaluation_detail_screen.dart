@@ -44,10 +44,30 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     Color(0xFFE57373), Color(0xFF4FC3F7), Color(0xFFAED581), Color(0xFFFF8A65),
   ];
 
+  String _normalizeScaleIdentifier(String? value) {
+    return (value ?? '')
+        .toLowerCase()
+        .replaceAll(' ', '')
+        .replaceAll('-', '')
+        .replaceAll('à', 'a')
+        .replaceAll('á', 'a')
+        .replaceAll('è', 'e')
+        .replaceAll('é', 'e')
+        .replaceAll('ì', 'i')
+        .replaceAll('í', 'i')
+        .replaceAll('ò', 'o')
+        .replaceAll('ó', 'o')
+        .replaceAll('ù', 'u')
+        .replaceAll('ú', 'u');
+  }
+
   bool get _isSanMartinScale {
-    final scaleName = (_analysis?.scalaNome ?? widget.scale.nome).toLowerCase();
-    final normalized = scaleName.replaceAll(' ', '').replaceAll('-', '');
-    return normalized.contains('sanmartin');
+    final normalizedName =
+        _normalizeScaleIdentifier(_analysis?.scalaNome ?? widget.scale.nome);
+    final normalizedId =
+        _normalizeScaleIdentifier(_analysis?.idScala ?? widget.scale.id);
+    return normalizedName.contains('sanmartin') ||
+        normalizedId.contains('sanmartin');
   }
 
   bool get _hasStandardProfile =>
@@ -121,11 +141,15 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
       print('DEBUG AUTANALYSIS - analysis loaded: ${analysis != null}');
       if (analysis != null) {
         print('DEBUG AUTANALYSIS - scalaNome: ${analysis.scalaNome}');
+        print('DEBUG AUTANALYSIS - scalaNome normalized: ${_normalizeScaleIdentifier(analysis.scalaNome)}');
+        print('DEBUG AUTANALYSIS - widget scale normalized: ${_normalizeScaleIdentifier(widget.scale.nome)}');
         print('DEBUG AUTANALYSIS - indiceQv: ${analysis.indiceQv}');
         print('DEBUG AUTANALYSIS - percentile: ${analysis.percentile}');
         print('DEBUG AUTANALYSIS - fasciaQv: ${analysis.fasciaQv}');
         print('DEBUG AUTANALYSIS - sommaPunteggiStandard: ${analysis.sommaPunteggiStandard}');
         print('DEBUG AUTANALYSIS - domini: ${analysis.domini.map((d) => '${d.codice}[raw=${d.punteggioDiretto},std=${d.punteggioStandard}]').join(', ')}');
+        print('DEBUG AUTANALYSIS - isSanMartinScale: $_isSanMartinScale');
+        print('DEBUG AUTANALYSIS - shouldUseSanMartinUi: $_shouldUseSanMartinUi');
       } else {
         print('DEBUG AUTANALYSIS - analysis is null');
       }

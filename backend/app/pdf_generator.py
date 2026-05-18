@@ -375,10 +375,10 @@ def _make_qv_summary_table(analysis: dict, styles) -> Table:
         ('BACKGROUND', (0, 0), (-1, -1), PRIMARY),
         ('BOX', (0, 0), (-1, -1), 0, PRIMARY),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 10),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-        ('TOPPADDING', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 7),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
         ('SPAN', (1, 1), (2, 1)),
     ]))
     return table
@@ -436,8 +436,8 @@ def generate_evaluation_pdf(
         pagesize=A4,
         leftMargin=1.8 * cm,
         rightMargin=1.8 * cm,
-        topMargin=2 * cm,
-        bottomMargin=2 * cm,
+        topMargin=1.4 * cm,
+        bottomMargin=1.4 * cm,
     )
 
     styles = getSampleStyleSheet()
@@ -450,12 +450,12 @@ def generate_evaluation_pdf(
     )
     subtitle_style = ParagraphStyle(
         'Subtitle', parent=styles['Normal'],
-        fontSize=12, textColor=MID_GREY, spaceAfter=16, fontName='Helvetica',
+        fontSize=12, textColor=MID_GREY, spaceAfter=10, fontName='Helvetica',
     )
     section_header = ParagraphStyle(
         'SectionHeader', parent=styles['Normal'],
         fontSize=12, textColor=DARK_TEXT, fontName='Helvetica-Bold',
-        spaceBefore=20, spaceAfter=8,
+        spaceBefore=12, spaceAfter=6,
     )
 
     has_analysis = analysis is not None and analysis.get("indice_qv") is not None
@@ -472,7 +472,7 @@ def generate_evaluation_pdf(
     # ── Header ─────────────────────────────────────────────────────────────
     story.append(Paragraph("AutAnalysis", title_style))
     story.append(Paragraph("Report di Valutazione Clinica", subtitle_style))
-    story.append(HRFlowable(width="100%", thickness=1, color=BORDER, spaceAfter=14))
+    story.append(HRFlowable(width="100%", thickness=1, color=BORDER, spaceAfter=10))
 
     # ── Info scala ─────────────────────────────────────────────────────────
     if is_sanmartin:
@@ -491,7 +491,7 @@ def generate_evaluation_pdf(
                     fontSize=8, textColor=MID_GREY, fontName='Helvetica',
                     spaceAfter=1,
                 )))
-            story.append(Spacer(1, 0.3 * cm))
+            story.append(Spacer(1, 0.15 * cm))
 
     # ── Info paziente / valutazione ─────────────────────────────────────────
     if is_sanmartin:
@@ -523,12 +523,12 @@ def generate_evaluation_pdf(
             ('LEFTPADDING', (0, 0), (-1, -1), 6),
         ]))
         story.append(meta_table)
-    story.append(Spacer(1, 0.4 * cm))
+    story.append(Spacer(1, 0.2 * cm))
 
     # ── Riepilogo QV (solo San Martín) ───────────────────────────────────────
     if is_sanmartin and analysis is not None:
         story.append(_make_qv_summary_table(analysis, styles))
-        story.append(Spacer(1, 0.5 * cm))
+        story.append(Spacer(1, 0.25 * cm))
 
     # ── Grafico ─────────────────────────────────────────────────────────────
     story.append(Paragraph("Profilo dei Punteggi", section_header))
@@ -536,13 +536,13 @@ def generate_evaluation_pdf(
     if is_sanmartin and analysis is not None:
         chart_domains = analysis.get("domini", [])
         chart_buf = _make_radar_chart(chart_domains)
-        chart_img = RLImage(chart_buf, width=13.5 * cm, height=13.5 * cm)
+        chart_img = RLImage(chart_buf, width=10.2 * cm, height=10.2 * cm)
     else:
         chart_buf = _make_bar_chart(domains)
         chart_img = RLImage(chart_buf, width=17 * cm, height=6.5 * cm)
 
     story.append(chart_img)
-    story.append(Spacer(1, 0.4 * cm))
+    story.append(Spacer(1, 0.2 * cm))
 
     # ── Legenda fasce ───────────────────────────────────────────────────────
     if is_sanmartin and analysis is not None:
@@ -582,7 +582,7 @@ def generate_evaluation_pdf(
             ('ROUNDEDCORNERS', [6]),
         ]))
         story.append(legend_table)
-        story.append(Spacer(1, 0.5 * cm))
+        story.append(Spacer(1, 0.25 * cm))
 
     # ── Tabella riepilogo domìni ─────────────────────────────────────────────
     story.append(Paragraph("Riepilogo per Dominio", section_header))
