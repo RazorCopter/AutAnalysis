@@ -244,6 +244,11 @@ async def download_evaluation_pdf(
     patient_doc = await patients_collection.find_one({"id": eval_doc["id_paziente"]})
     scale_doc   = await scales_collection.find_one({"id": eval_doc["id_scala"]})
 
+    analysis = compute_psychometric_analysis(
+        risposte=eval_doc.get("risposte", []),
+        scale_doc=scale_doc or {},
+    )
+
     domain_map = build_domain_map(scale_doc or {})
     if not domain_map:
         domain_map = DOMINI_POS
@@ -254,6 +259,7 @@ async def download_evaluation_pdf(
         patient=patient_doc or {},
         scale=scale_doc or {},
         domains=domains,
+        analysis=analysis,
     )
 
     filename = f"valutazione_{evaluation_id[:8]}.pdf"

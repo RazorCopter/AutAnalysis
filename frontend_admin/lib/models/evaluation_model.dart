@@ -52,6 +52,8 @@ class DomainAnalysis {
   final String etichetta;
   final int punteggioDiretto;
   final int? punteggioStandard;
+  final int? percentileDominio;
+  final String? fascia;
   final int numDomande;
 
   DomainAnalysis({
@@ -59,6 +61,8 @@ class DomainAnalysis {
     required this.etichetta,
     required this.punteggioDiretto,
     this.punteggioStandard,
+    this.percentileDominio,
+    this.fascia,
     required this.numDomande,
   });
 
@@ -68,6 +72,8 @@ class DomainAnalysis {
       etichetta: json['etichetta'] ?? '',
       punteggioDiretto: json['punteggio_diretto'] ?? 0,
       punteggioStandard: json['punteggio_standard'],
+      percentileDominio: json['percentile_dominio'],
+      fascia: json['fascia'],
       numDomande: json['num_domande'] ?? 0,
     );
   }
@@ -81,6 +87,7 @@ class PsychometricAnalysis {
   final List<DomainAnalysis> domini;
   final int? indiceQv;
   final int? percentile;
+  final String? fasciaQv;
 
   PsychometricAnalysis({
     required this.idValutazione,
@@ -90,6 +97,7 @@ class PsychometricAnalysis {
     required this.domini,
     this.indiceQv,
     this.percentile,
+    this.fasciaQv,
   });
 
   factory PsychometricAnalysis.fromJson(Map<String, dynamic> json) {
@@ -100,6 +108,7 @@ class PsychometricAnalysis {
       scalaNome: json['scala_nome'] ?? '',
       indiceQv: json['indice_qv'],
       percentile: json['percentile'],
+      fasciaQv: json['fascia_qv'],
       domini: (json['domini'] as List?)
               ?.map((e) => DomainAnalysis.fromJson(e))
               .toList() ??

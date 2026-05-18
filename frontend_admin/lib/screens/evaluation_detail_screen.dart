@@ -261,6 +261,8 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
               const SizedBox(height: 20),
               _buildMetaCard(),
               const SizedBox(height: 20),
+              _buildClinicalCard(),
+              const SizedBox(height: 20),
               if (_analysis != null && _analysis!.indiceQv != null)
                 _buildQvSummaryCard(),
               if (_analysis != null && _analysis!.indiceQv != null)
@@ -346,6 +348,89 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     );
   }
 
+  // ─── Pannello Clinico ────────────────────────────────────────────────────────
+  Widget _buildClinicalCard() {
+    final p = widget.patient;
+    final noteLines = (p.note != null && p.note!.isNotEmpty)
+        ? p.note!.split('\n').where((l) => l.trim().isNotEmpty).toList()
+        : <String>[];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.assignment_ind_outlined, size: 20, color: AppTheme.primaryColor),
+                const SizedBox(width: 8),
+                const Text('Quadro Clinico',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (p.altezza != null || p.peso != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Wrap(
+                  spacing: 24,
+                  runSpacing: 8,
+                  children: [
+                    if (p.altezza != null)
+                      _clinicalChip(Icons.height, 'Altezza', '${p.altezza} cm'),
+                    if (p.peso != null)
+                      _clinicalChip(Icons.monitor_weight_outlined, 'Peso', '${p.peso} kg'),
+                  ],
+                ),
+              ),
+            if (noteLines.isNotEmpty) ...[
+              const Text('Note Cliniche',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
+              const SizedBox(height: 6),
+              ...noteLines.map((line) => Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('• ', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
+                        Expanded(
+                          child: Text(line.trim(),
+                              style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary, height: 1.4)),
+                        ),
+                      ],
+                    ),
+                  )),
+            ],
+            if (p.altezza == null && p.peso == null && noteLines.isEmpty)
+              const Text('Nessun dato clinico aggiuntivo registrato.',
+                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, fontStyle: FontStyle.italic)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _clinicalChip(IconData icon, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F5FF),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: AppTheme.primaryColor),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+          const SizedBox(width: 6),
+          Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+        ],
+      ),
+    );
+  }
+
   // ─── Card Riepilogo QV ──────────────────────────────────────────────────────
   Widget _buildQvSummaryCard() {
     final a = _analysis!;
@@ -384,6 +469,10 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                       ),
                     ],
                   ),
+                  if (a.fasciaQv != null) ...[
+                    const SizedBox(height: 4),
+                    _fasciaBadge(a.fasciaQv!),
+                  ],
                 ],
               ),
             ),
@@ -421,7 +510,27 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     );
   }
 
-  // ─── Card Grafico ──────────────────────────────────────────────────────────
+  static const _fasciaColorMap = {
+    'Molto Basso': Color(0xFFD32F2F),
+    'Basso':       Color(0xFFF57C00),
+    'Medio':       Color(0xFFFBC02D),
+    'Alto':        Color(0xFF7CB342),
+    'Molto Alto':  Color(0xFF388E3C),
+  };
+
+  Widget _fasciaBadge(String fascia) {
+    final color = _fasciaColorMap[fascia] ?? AppTheme.textSecondary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(fascia,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+    );
+  }
   Widget _buildChartCard() {
     final hasAnalysis = _analysis != null && _analysis!.domini.isNotEmpty;
     final useStandard = hasAnalysis && _analysis!.indiceQv != null;
@@ -433,24 +542,24 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              useStandard ? 'Profilo Punteggi Standard per Dominio' : 'Profilo Punteggi per Dominio',
+              useStandard ? 'Profilo Punteggi Standard — Radar' : 'Profilo Punteggi per Dominio',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
             ),
             const SizedBox(height: 4),
             Text(
-              useStandard ? 'Scala 1–20 · Media=10 · DS=3' : 'Punteggio grezzo per dominio',
+              useStandard ? 'Scala 1–20 · Media=10 · DS=3    ▬▬ Paziente    - - - Media normativa' : 'Punteggio grezzo per dominio',
               style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 24),
             if (_isLoadingAnalysis)
               const SizedBox(
-                height: 300,
+                height: 400,
                 child: Center(child: CircularProgressIndicator()),
               )
             else
               SizedBox(
-                height: 300,
-                child: _buildBarChart(),
+                height: useStandard ? 440 : 300,
+                child: useStandard ? _buildRadarChart() : _buildBarChart(),
               ),
           ],
         ),
@@ -458,7 +567,65 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     );
   }
 
-  // ─── Istogramma Barre ──────────────────────────────────────────────────────
+  // ─── Radar Chart (San Martín e scale con scoring_tables) ──────────────────
+  Widget _buildRadarChart() {
+    final domains = _analysis!.domini;
+    final titles = domains.map((d) => d.codice).toList();
+    final patientValues = domains
+        .map((d) => (d.punteggioStandard ?? 0).toDouble())
+        .toList();
+    final meanValues = List<double>.filled(domains.length, 10.0);
+
+    return RadarChart(
+      RadarChartData(
+        radarShape: RadarShape.polygon,
+        tickCount: 5,
+        ticksTextStyle: const TextStyle(fontSize: 10, color: Color(0xFF9E9E9E)),
+        tickBorderData: const BorderSide(color: Color(0xFFDDE7F8), width: 0.8),
+        gridBorderData: const BorderSide(color: Color(0xFFDDE7F8), width: 0.8),
+        radarBorderData: const BorderSide(color: Color(0xFF90A4AE), width: 1.2),
+        radarBackgroundColor: const Color(0xFFF8FBFF),
+        titlePositionPercentageOffset: 0.18,
+        getTitle: (index, _) {
+          if (index < 0 || index >= domains.length) {
+            return const RadarChartTitle(text: '');
+          }
+          return RadarChartTitle(
+            text: titles[index],
+            textStyle: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2D3748),
+            ),
+          );
+        },
+        dataSets: [
+          RadarDataSet(
+            dataEntries: patientValues
+                .map((v) => RadarEntry(value: v))
+                .toList(),
+            borderColor: const Color(0xFF1A237E),
+            borderWidth: 2.5,
+            fillColor: const Color(0xFF1A237E).withValues(alpha: 0.12),
+            entryRadius: 4.5,
+            borderDashArray: [],
+          ),
+          RadarDataSet(
+            dataEntries: meanValues
+                .map((v) => RadarEntry(value: v))
+                .toList(),
+            borderColor: const Color(0xFFE57373),
+            borderWidth: 1.8,
+            fillColor: Colors.transparent,
+            entryRadius: 2,
+            borderDashArray: [6, 4],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Istogramma Barre (fallback per scale senza scoring_tables) ────────────
   Widget _buildBarChart() {
     final hasAnalysis = _analysis != null && _analysis!.domini.isNotEmpty;
     final items = hasAnalysis ? _analysis!.domini : _eval!.domini;
@@ -591,11 +758,12 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
             Table(
               columnWidths: showStandard
                   ? const {
-                      0: FlexColumnWidth(1),
-                      1: FlexColumnWidth(3),
-                      2: FlexColumnWidth(1.2),
-                      3: FlexColumnWidth(1.2),
-                      4: FlexColumnWidth(0.8),
+                      0: FlexColumnWidth(0.8),
+                      1: FlexColumnWidth(2.5),
+                      2: FlexColumnWidth(1),
+                      3: FlexColumnWidth(1),
+                      4: FlexColumnWidth(1),
+                      5: FlexColumnWidth(1.5),
                     }
                   : const {
                       0: FlexColumnWidth(1),
@@ -615,7 +783,8 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                     if (showStandard) ...[
                       const _TableHeader('Grezzo'),
                       const _TableHeader('Std'),
-                      const _TableHeader('Dom.'),
+                      const _TableHeader('%'),
+                      const _TableHeader('Fascia'),
                     ] else ...[
                       const _TableHeader('Punteggio'),
                       const _TableHeader('Domande'),
@@ -634,21 +803,27 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                       ),
                       children: [
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
                             decoration: BoxDecoration(
                               color: color.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(d.codice,
-                                style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 12)),
+                                style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 11)),
                           ),
                         ),
-                        _TableCell(d.etichetta),
+                        _TableCell(d.etichetta, fontSize: 12),
                         _TableCell(d.punteggioDiretto.toString()),
                         _TableCell(d.punteggioStandard?.toString() ?? '—', bold: true),
-                        _TableCell(d.numDomande.toString()),
+                        _TableCell(d.percentileDominio?.toString() != null
+                            ? '${d.percentileDominio}°' : '—'),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                          child: d.fascia != null ? _fasciaBadge(d.fascia!) : const Text('—',
+                              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                        ),
                       ],
                     );
                   } else {
@@ -836,7 +1011,8 @@ class _TableHeader extends StatelessWidget {
 class _TableCell extends StatelessWidget {
   final String text;
   final bool bold;
-  const _TableCell(this.text, {this.bold = false});
+  final double? fontSize;
+  const _TableCell(this.text, {this.bold = false, this.fontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -845,7 +1021,7 @@ class _TableCell extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 13,
+          fontSize: fontSize ?? 13,
           color: bold ? AppTheme.textPrimary : AppTheme.textSecondary,
           fontWeight: bold ? FontWeight.bold : FontWeight.normal,
         ),

@@ -1,15 +1,16 @@
 """
-pdf_generator.py
-Generazione PDF per valutazioni POS con grafici (lineare o barre).
+pdf_generator.py — Generazione PDF per valutazioni cliniche.
+
+Supporta sia scale con scoring psicometrico (San Martín: radar chart, QoL, percentili)
+sia scale semplici (POS: bar chart orizzontale).
 """
 import io
 from datetime import datetime, timezone
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import matplotlib
-matplotlib.use('Agg')  # Backend non-interattivo per server
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 import numpy as np
 
 from reportlab.lib.pagesizes import A4
@@ -23,42 +24,30 @@ from reportlab.platypus import (
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 
 # ─── Palette colori tema ────────────────────────────────────────────────────
-PRIMARY    = HexColor('#64B5F6')   # azzurro
-SECONDARY  = HexColor('#FFB74D')   # arancio
-ACCENT     = HexColor('#81C784')   # verde
+PRIMARY    = HexColor('#1A237E')
+SECONDARY  = HexColor('#FFB74D')
+ACCENT     = HexColor('#81C784')
 DARK_TEXT  = HexColor('#2D3748')
 LIGHT_GREY = HexColor('#F3F8FF')
 MID_GREY   = HexColor('#718096')
 BORDER     = HexColor('#E8EEF8')
+RED_MEAN   = HexColor('#E57373')
 
 DOMAIN_COLORS = [
-    '#64B5F6', '#FFB74D', '#81C784', '#CE93D8',
-    '#E57373', '#4FC3F7', '#AED581', '#FF8A65',
+    '#1A237E', '#E53935', '#43A047', '#FB8C00',
+    '#8E24AA', '#00ACC1', '#3949AB', '#F4511E',
 ]
 
-# ─── Aggregazione domìni ────────────────────────────────────────────────────
-def aggregate_domains(risposte: list, domini_map: Dict[str, str]) -> List[dict]:
-    """
-    Raggruppa le risposte per prefisso dominio e calcola la somma.
-    risposte: lista di dict {"codice_domanda": str, "punteggio": int, ...}
-    """
-    aggregated: Dict[str, dict] = {}
-    for cod, label in domini_map.items():
-        aggregated[cod] = {"codice": cod, "etichetta": label, "punteggio_totale": 0, "num_domande": 0}
-
-    for r in risposte:
-        codice = r.get("codice_domanda", "")
-        for prefix in sorted(domini_map.keys(), key=len, reverse=True):
-            if codice.upper().startswith(prefix.upper()):
-                aggregated[prefix]["punteggio_totale"] += r.get("punteggio", 0)
-                aggregated[prefix]["num_domande"] += 1
-                break
-
-    return list(aggregated.values())
+FASCIA_COLORS = {
+    "Molto Basso": '#D32F2F',
+    "Basso":       '#F57C00',
+    "Medio":       '#FBC02D',
+    "Alto":        '#7CB342',
+    "Molto Alto":  '#388E3C',
+}
 
 
-def _wrap_label(text: str, max_chars: int = 14) -> str:
-    """Divide un'etichetta su due righe se supera max_chars."""
+def _wrap_label(text: str, max_chars: int = 16) -> str:
     if len(text) <= max_chars:
         return text
     if ' ' in text:
@@ -73,11 +62,79 @@ def _wrap_label(text: str, max_chars: int = 14) -> str:
     return text[:mid] + '\n' + text[mid:]
 
 
-def _make_bar_chart(domains: List[dict], score_min: int = 6, score_max: int = 18) -> io.BytesIO:
-    labels   = [_wrap_label(d['etichetta']) for d in domains]
-    scores   = [d["punteggio_totale"] for d in domains]
+# ─── Grafico radar per San Martín ───────────────────────────────────────────
+
+def _make_radar_chart(
+    domains: List[dict],
+    score_min: int = 0,
+    score_max: int = 20,
+    mean_ref: int = 10,
+) -> io.BytesIO:
+    """
+    Crea un grafico radar (tela di ragno) a 8 assi con:
+    - Profilo paziente (blu navy pieno + fill)
+    - Linea media normativa (rossa tratteggiata)
+    - Anelli concentrici con etichette
+    """
+    labels = [d["codice"] for d in domains]
+    patient_values = [d.get("punteggio_standard") or 0 for d in domains]
+    mean_values = [mean_ref] * len(labels)
     n = len(labels)
-    colors   = DOMAIN_COLORS[:n]
+
+    angles = np.linspace(0, 2 * np.pi, n, endpoint=False).tolist()
+    angles += angles[:1]
+
+    patient_vals = patient_values + patient_values[:1]
+    mean_vals = mean_values + mean_values[:1]
+
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True), dpi=150)
+    fig.patch.set_facecolor('#F8FBFF')
+    ax.set_facecolor('#F8FBFF')
+
+    ax.set_theta_offset(np.pi / 2)
+    ax.set_theta_direction(-1)
+
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(labels, fontsize=12, fontweight='bold', color='#2D3748')
+
+    ax.set_ylim(score_min, score_max)
+    ax.set_yticks([0, 4, 8, 12, 16, 20])
+    ax.set_yticklabels(['0', '4', '8', '12', '16', '20'],
+                        fontsize=8, color='#9E9E9E')
+    ax.yaxis.grid(True, color='#DDE7F8', linewidth=0.8)
+    ax.xaxis.grid(True, color='#DDE7F8', linewidth=0.8)
+    ax.spines['polar'].set_color('#90A4AE')
+    ax.spines['polar'].set_linewidth(1.2)
+
+    ax.fill(angles, patient_vals, color='#1A237E', alpha=0.10)
+    ax.plot(angles, patient_vals, 'o-', linewidth=2.5, markersize=7,
+            color='#1A237E', markerfacecolor='white', markeredgewidth=2,
+            markeredgecolor='#1A237E', label='Paziente', zorder=5)
+
+    ax.plot(angles, mean_vals, '--', linewidth=1.8, color='#E57373',
+            label=f'Media ({mean_ref})', alpha=0.8)
+
+    ax.legend(loc='upper right', bbox_to_anchor=(1.25, 1.12),
+              fontsize=9, framealpha=0.9, edgecolor='#E8EEF8')
+
+    ax.set_title('Profilo Punteggi Standard', fontsize=14,
+                 fontweight='bold', color='#2D3748', pad=24)
+
+    plt.tight_layout()
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', facecolor='#F8FBFF', dpi=150)
+    plt.close(fig)
+    buf.seek(0)
+    return buf
+
+
+# ─── Grafico a barre (fallback POS) ─────────────────────────────────────────
+
+def _make_bar_chart(domains: List[dict], score_min: int = 6, score_max: int = 18) -> io.BytesIO:
+    labels = [_wrap_label(d['etichetta']) for d in domains]
+    scores = [d["punteggio_totale"] for d in domains]
+    n = len(labels)
+    colors = DOMAIN_COLORS[:n]
 
     fig, ax = plt.subplots(figsize=(10, max(3.5, n * 0.6 + 1.2)), dpi=140)
     fig.patch.set_facecolor('#F8FBFF')
@@ -86,9 +143,10 @@ def _make_bar_chart(domains: List[dict], score_min: int = 6, score_max: int = 18
     y = np.arange(n)
     bars = ax.barh(y, scores, color=colors, height=0.6, zorder=3)
 
-    # Linee di riferimento verticali
-    ax.axvline(score_min, color='#E57373', linewidth=1.2, linestyle='--', alpha=0.7, label=f'Min ({score_min})')
-    ax.axvline(score_max, color='#81C784', linewidth=1.2, linestyle='--', alpha=0.7, label=f'Max ({score_max})')
+    ax.axvline(score_min, color='#E57373', linewidth=1.2, linestyle='--',
+               alpha=0.7, label=f'Min ({score_min})')
+    ax.axvline(score_max, color='#81C784', linewidth=1.2, linestyle='--',
+               alpha=0.7, label=f'Max ({score_max})')
 
     for bar, score in zip(bars, scores):
         ax.text(bar.get_width() + 0.2, bar.get_y() + bar.get_height() / 2,
@@ -117,12 +175,38 @@ def _make_bar_chart(domains: List[dict], score_min: int = 6, score_max: int = 18
     return buf
 
 
+# ─── Helper tabelle ─────────────────────────────────────────────────────────
+
+def _make_table(headers: list, rows: list, col_widths: list,
+                header_color, style_extras: list = None) -> Table:
+    data = [headers] + rows
+    t = Table(data, colWidths=col_widths)
+    base_style = [
+        ('FONTNAME',     (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE',     (0, 0), (-1, -1), 9),
+        ('BACKGROUND',   (0, 0), (-1, 0), header_color),
+        ('TEXTCOLOR',    (0, 0), (-1, 0), white),
+        ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [LIGHT_GREY, white]),
+        ('GRID',         (0, 0), (-1, -1), 0.3, BORDER),
+        ('TOPPADDING',   (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING',  (0, 0), (-1, -1), 6),
+    ]
+    if style_extras:
+        base_style.extend(style_extras)
+    t.setStyle(TableStyle(base_style))
+    return t
+
+
 # ─── Generazione PDF completo ────────────────────────────────────────────────
+
 def generate_evaluation_pdf(
     evaluation: dict,
     patient: dict,
     scale: dict,
     domains: List[dict],
+    analysis: Optional[dict] = None,
 ) -> bytes:
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -139,49 +223,46 @@ def generate_evaluation_pdf(
 
     # ── Stili personalizzati ────────────────────────────────────────────────
     title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Title'],
-        fontSize=22,
-        textColor=DARK_TEXT,
-        spaceAfter=4,
-        fontName='Helvetica-Bold',
+        'CustomTitle', parent=styles['Title'],
+        fontSize=22, textColor=DARK_TEXT, spaceAfter=4, fontName='Helvetica-Bold',
     )
     subtitle_style = ParagraphStyle(
-        'Subtitle',
-        parent=styles['Normal'],
-        fontSize=12,
-        textColor=MID_GREY,
-        spaceAfter=16,
-        fontName='Helvetica',
+        'Subtitle', parent=styles['Normal'],
+        fontSize=12, textColor=MID_GREY, spaceAfter=16, fontName='Helvetica',
     )
-    section_header_style = ParagraphStyle(
-        'SectionHeader',
-        parent=styles['Normal'],
-        fontSize=11,
-        textColor=DARK_TEXT,
-        fontName='Helvetica-Bold',
-        spaceBefore=18,
-        spaceAfter=6,
+    section_header = ParagraphStyle(
+        'SectionHeader', parent=styles['Normal'],
+        fontSize=12, textColor=DARK_TEXT, fontName='Helvetica-Bold',
+        spaceBefore=20, spaceAfter=8,
     )
-    label_style = ParagraphStyle(
-        'Label',
-        parent=styles['Normal'],
-        fontSize=9,
-        textColor=MID_GREY,
-        fontName='Helvetica',
-    )
-    normal_style = ParagraphStyle(
-        'Body',
-        parent=styles['Normal'],
-        fontSize=10,
-        textColor=DARK_TEXT,
-        fontName='Helvetica',
-    )
+
+    has_analysis = analysis is not None and analysis.get("indice_qv") is not None
+    scala_nome = scale.get("nome", "")
+    is_sanmartin = has_analysis and "San Martín" in scala_nome
 
     # ── Header ─────────────────────────────────────────────────────────────
     story.append(Paragraph("AutAnalysis", title_style))
     story.append(Paragraph("Report di Valutazione Clinica", subtitle_style))
     story.append(HRFlowable(width="100%", thickness=1, color=BORDER, spaceAfter=14))
+
+    # ── Info scala ─────────────────────────────────────────────────────────
+    if is_sanmartin:
+        scale_meta = []
+        if scale.get("autori"):
+            scale_meta.append(f"Autori: {scale['autori']}")
+        if scale.get("anno"):
+            scale_meta.append(f"Anno: {scale['anno']}")
+        if scale.get("editore"):
+            scale_meta.append(f"Editore: {scale['editore']}")
+        if scale_meta:
+            story.append(Paragraph("Scala San Martín", section_header))
+            for line in scale_meta:
+                story.append(Paragraph(line, ParagraphStyle(
+                    'ScaleMeta', parent=styles['Normal'],
+                    fontSize=8, textColor=MID_GREY, fontName='Helvetica',
+                    spaceAfter=1,
+                )))
+            story.append(Spacer(1, 0.3 * cm))
 
     # ── Info paziente / valutazione ─────────────────────────────────────────
     nome_paziente = f"{patient.get('nome', '')} {patient.get('cognome', '')}"
@@ -195,11 +276,28 @@ def generate_evaluation_pdf(
             data_str = str(data_str)[:10]
 
     meta_data = [
-        ["Paziente:", nome_paziente,     "Data:",      data_str],
-        ["Scala:",    scale.get("nome", ""), "Operatore:", evaluation.get("nome_operatore", "-")],
-        ["Intervistato/a:", evaluation.get("nome_intervistato", "-"), "Anno:", str(evaluation.get("anno", "-"))],
+        ["Paziente:", nome_paziente, "Data:", data_str],
+        ["Scala:", scala_nome, "Operatore:", evaluation.get("nome_operatore", "-")],
+        ["Intervistato/a:", evaluation.get("nome_intervistato", "-"),
+         "Anno:", str(evaluation.get("anno", "-"))],
         ["ID Valutazione:", evaluation.get("id_valutazione", "-")[:8] + "…", "", ""],
     ]
+
+    # Aggiungi dati clinici se disponibili
+    note_lines = []
+    if patient.get("altezza") or patient.get("peso"):
+        clinica = []
+        if patient.get("altezza"):
+            clinica.append(f"Altezza: {patient['altezza']} cm")
+        if patient.get("peso"):
+            clinica.append(f"Peso: {patient['peso']} kg")
+        meta_data.append(["Dati clinici:", " · ".join(clinica), "", ""])
+
+    if patient.get("note"):
+        raw_note = str(patient["note"])
+        note_lines = [l.strip() for l in raw_note.split('\n') if l.strip()]
+        meta_data.append(["Note:", note_lines[0][:60] + ("…" if len(note_lines[0]) > 60 else ""), "", ""])
+
     meta_table = Table(meta_data, colWidths=[2.8*cm, 7*cm, 2.8*cm, 7*cm])
     meta_table.setStyle(TableStyle([
         ('FONTNAME',    (0, 0), (-1, -1), 'Helvetica'),
@@ -215,51 +313,148 @@ def generate_evaluation_pdf(
         ('TOPPADDING',  (0, 0), (-1, -1), 5),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
         ('LEFTPADDING', (0, 0), (-1, -1), 6),
-        ('ROUNDEDCORNERS', [4]),
     ]))
     story.append(meta_table)
     story.append(Spacer(1, 0.4 * cm))
 
+    # ── Riepilogo QV (solo San Martín) ───────────────────────────────────────
+    if has_analysis:
+        ind_qv = analysis.get("indice_qv")
+        perc = analysis.get("percentile")
+        fascia_qv = analysis.get("fascia_qv", "")
+        fascia_color = FASCIA_COLORS.get(fascia_qv, '#2D3748')
+
+        qv_data = [
+            [Paragraph("Indice di Qualità della Vita",
+                       ParagraphStyle('QvLabel', parent=styles['Normal'],
+                                      fontSize=11, textColor=white, fontName='Helvetica-Bold')),
+             Paragraph(f"{ind_qv} / 132",
+                       ParagraphStyle('QvValue', parent=styles['Normal'],
+                                      fontSize=24, textColor=white, fontName='Helvetica-Bold')),
+             Paragraph("Percentile",
+                       ParagraphStyle('QvLabel', parent=styles['Normal'],
+                                      fontSize=11, textColor=white, fontName='Helvetica-Bold')),
+             Paragraph(f"{perc}°",
+                       ParagraphStyle('QvValue', parent=styles['Normal'],
+                                      fontSize=24, textColor=HexColor('#AED581'), fontName='Helvetica-Bold')),
+             ],
+            [Paragraph(f"Fascia: {fascia_qv}",
+                       ParagraphStyle('Fascia', parent=styles['Normal'],
+                                      fontSize=13, textColor=HexColor(fascia_color),
+                                      fontName='Helvetica-Bold')),
+             "", "", ""],
+        ]
+        qv_table = Table(qv_data, colWidths=[5*cm, 3.5*cm, 3*cm, 3*cm])
+        qv_table.setStyle(TableStyle([
+            ('BACKGROUND',   (0, 0), (-1, -1), PRIMARY),
+            ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING',  (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+            ('TOPPADDING',   (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING',(0, 0), (-1, -1), 10),
+            ('SPAN',         (1, 1), (-1, 1)),
+            ('ROUNDEDCORNERS', [8]),
+        ]))
+        story.append(qv_table)
+        story.append(Spacer(1, 0.5 * cm))
+
     # ── Grafico ─────────────────────────────────────────────────────────────
-    story.append(Paragraph("Profilo dei Punteggi Aggregati", section_header_style))
+    story.append(Paragraph("Profilo dei Punteggi", section_header))
 
-    chart_buf = _make_bar_chart(domains)
+    if has_analysis:
+        chart_domains = analysis.get("domini", [])
+        chart_buf = _make_radar_chart(chart_domains)
+        chart_img = RLImage(chart_buf, width=14 * cm, height=14 * cm)
+    else:
+        chart_buf = _make_bar_chart(domains)
+        chart_img = RLImage(chart_buf, width=17 * cm, height=6.5 * cm)
 
-    chart_img = RLImage(chart_buf, width=17 * cm, height=6.5 * cm)
     story.append(chart_img)
     story.append(Spacer(1, 0.4 * cm))
 
-    # ── Tabella aggregata domìni ─────────────────────────────────────────────
-    story.append(Paragraph("Riepilogo per Dominio", section_header_style))
+    # ── Legenda fasce ───────────────────────────────────────────────────────
+    if has_analysis:
+        story.append(Paragraph("Fasce Interpretative (Punteggi Standard)",
+                               ParagraphStyle('LegendTitle', parent=styles['Normal'],
+                                              fontSize=9, textColor=MID_GREY,
+                                              fontName='Helvetica-Bold', spaceAfter=4)))
+        fasce_data = [[
+            Paragraph("Molto Basso<br/>1–4",
+                      ParagraphStyle('FB', parent=styles['Normal'], fontSize=7,
+                                     textColor=HexColor('#D32F2F'), fontName='Helvetica-Bold',
+                                     alignment=TA_CENTER, leading=9)),
+            Paragraph("Basso<br/>5–7",
+                      ParagraphStyle('FB', parent=styles['Normal'], fontSize=7,
+                                     textColor=HexColor('#F57C00'), fontName='Helvetica-Bold',
+                                     alignment=TA_CENTER, leading=9)),
+            Paragraph("Medio<br/>8–12",
+                      ParagraphStyle('FB', parent=styles['Normal'], fontSize=7,
+                                     textColor=HexColor('#FBC02D'), fontName='Helvetica-Bold',
+                                     alignment=TA_CENTER, leading=9)),
+            Paragraph("Alto<br/>13–15",
+                      ParagraphStyle('FB', parent=styles['Normal'], fontSize=7,
+                                     textColor=HexColor('#7CB342'), fontName='Helvetica-Bold',
+                                     alignment=TA_CENTER, leading=9)),
+            Paragraph("Molto Alto<br/>16–20",
+                      ParagraphStyle('FB', parent=styles['Normal'], fontSize=7,
+                                     textColor=HexColor('#388E3C'), fontName='Helvetica-Bold',
+                                     alignment=TA_CENTER, leading=9)),
+        ]]
+        legend_table = Table(fasce_data, colWidths=[3.2*cm]*5)
+        legend_table.setStyle(TableStyle([
+            ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN',        (0, 0), (-1, -1), 'CENTER'),
+            ('BACKGROUND',   (0, 0), (-1, -1), LIGHT_GREY),
+            ('TOPPADDING',   (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
+            ('ROUNDEDCORNERS', [6]),
+        ]))
+        story.append(legend_table)
+        story.append(Spacer(1, 0.5 * cm))
 
-    domain_headers = ["Cod.", "Dominio", "Punteggio Totale", "N° Domande"]
-    domain_rows = [domain_headers] + [
-        [d["codice"], d["etichetta"], str(d["punteggio_totale"]), str(d["num_domande"])]
-        for d in domains
-    ]
-    col_widths = [1.5*cm, 7*cm, 4*cm, 3*cm]
-    domain_table = Table(domain_rows, colWidths=col_widths)
-    domain_table.setStyle(TableStyle([
-        ('FONTNAME',     (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE',     (0, 0), (-1, -1), 9),
-        ('BACKGROUND',   (0, 0), (-1, 0), PRIMARY),
-        ('TEXTCOLOR',    (0, 0), (-1, 0), white),
-        ('ALIGN',        (2, 0), (3, -1), 'CENTER'),
-        ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [LIGHT_GREY, white]),
-        ('GRID',         (0, 0), (-1, -1), 0.3, BORDER),
-        ('TOPPADDING',   (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ('LEFTPADDING',  (0, 0), (-1, -1), 6),
-    ]))
+    # ── Tabella riepilogo domìni ─────────────────────────────────────────────
+    story.append(Paragraph("Riepilogo per Dominio", section_header))
+
+    if has_analysis:
+        domain_headers = ["Cod.", "Dominio", "Punteggio\nDiretto",
+                          "Punteggio\nStandard", "Percentile", "Fascia"]
+        domain_rows = [
+            [d["codice"], d["etichetta"],
+             str(d["punteggio_diretto"]),
+             str(d["punteggio_standard"]) if d["punteggio_standard"] is not None else "—",
+             f"{d['percentile_dominio']}°" if d.get("percentile_dominio") is not None else "—",
+             Paragraph(d.get("fascia") or "—",
+                       ParagraphStyle('FasciaCell', parent=styles['Normal'],
+                                      fontSize=8, textColor=HexColor(FASCIA_COLORS.get(d.get("fascia"), '#2D3748')),
+                                      fontName='Helvetica-Bold', alignment=TA_CENTER))]
+            for d in analysis.get("domini", [])
+        ]
+        col_widths = [1.2*cm, 3.5*cm, 2.2*cm, 2.2*cm, 2*cm, 2.5*cm]
+        style_extras = [
+            ('ALIGN', (2, 0), (4, -1), 'CENTER'),
+        ]
+    else:
+        domain_headers = ["Cod.", "Dominio", "Punteggio Totale", "N° Domande"]
+        domain_rows = [
+            [d["codice"], d["etichetta"], str(d["punteggio_totale"]), str(d["num_domande"])]
+            for d in domains
+        ]
+        col_widths = [1.5*cm, 7*cm, 4*cm, 3*cm]
+        style_extras = [
+            ('ALIGN', (2, 0), (3, -1), 'CENTER'),
+        ]
+
+    domain_table = _make_table(
+        domain_headers, domain_rows, col_widths, PRIMARY, style_extras
+    )
     story.append(domain_table)
     story.append(Spacer(1, 0.5 * cm))
 
     # ── Tabella dettaglio risposte ───────────────────────────────────────────
-    story.append(Paragraph("Dettaglio Risposte", section_header_style))
+    story.append(Paragraph("Dettaglio Risposte", section_header))
 
     resp_headers = ["Codice", "Punteggio", "Nota"]
-    resp_rows = [resp_headers] + [
+    resp_rows = [
         [
             r.get("codice_domanda", "-"),
             str(r.get("punteggio", "-")),
@@ -267,21 +462,11 @@ def generate_evaluation_pdf(
         ]
         for r in evaluation.get("risposte", [])
     ]
-    resp_table = Table(resp_rows, colWidths=[2.5*cm, 2.5*cm, 14.5*cm])
-    resp_table.setStyle(TableStyle([
-        ('FONTNAME',      (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE',      (0, 0), (-1, -1), 8.5),
-        ('BACKGROUND',    (0, 0), (-1, 0), SECONDARY),
-        ('TEXTCOLOR',     (0, 0), (-1, 0), white),
-        ('ALIGN',         (1, 0), (1, -1), 'CENTER'),
-        ('VALIGN',        (0, 0), (-1, -1), 'MIDDLE'),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [LIGHT_GREY, white]),
-        ('GRID',          (0, 0), (-1, -1), 0.3, BORDER),
-        ('TOPPADDING',    (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ('LEFTPADDING',   (0, 0), (-1, -1), 6),
-        ('WORDWRAP',      (2, 0), (2, -1), True),
-    ]))
+    resp_table = _make_table(
+        resp_headers, resp_rows, [2.5*cm, 2.5*cm, 14.5*cm], SECONDARY,
+        [('ALIGN', (1, 0), (1, -1), 'CENTER'),
+         ('WORDWRAP', (2, 0), (2, -1), True)]
+    )
     story.append(resp_table)
 
     # ── Footer ──────────────────────────────────────────────────────────────
