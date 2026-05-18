@@ -390,7 +390,15 @@ def compute_psychometric_analysis(
 
     if total_standard is not None:
         # Override con tab_qv per garantire precisione clinica assoluta con la Tabella B del manuale
-        if "san martin" in scale_doc.get("nome", "").lower() and total_standard in tab_qv:
+        scale_id = scale_doc.get("id", "").lower()
+        scale_nome = scale_doc.get("nome", "").lower()
+        is_san_martin = (
+            "sanmartin" in scale_id or 
+            "san_martin" in scale_id or
+            "san martin" in scale_nome or
+            "san martín" in scale_nome
+        )
+        if is_san_martin and total_standard in tab_qv:
             indice_qv, percentile = tab_qv[total_standard]
         else:
             qdv_entry = _lookup_conversion_entry(

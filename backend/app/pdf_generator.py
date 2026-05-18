@@ -577,10 +577,14 @@ def generate_evaluation_pdf(
 
     has_analysis = analysis is not None and analysis.get("indice_qv") is not None
     scala_nome = scale.get("nome", "")
-    normalized_scale_name = str(scala_nome).lower().replace(" ", "").replace("-", "")
+    scale_id = scale.get("id", "").lower()
+    scale_nome_lower = str(scala_nome).lower()
     is_sanmartin = (
         analysis is not None and (
-            "sanmartin" in normalized_scale_name or
+            "sanmartin" in scale_id or
+            "san_martin" in scale_id or
+            "san martin" in scale_nome_lower or
+            "san martín" in scale_nome_lower or
             analysis.get("indice_qv") is not None or
             analysis.get("fascia_qv") is not None
         )
