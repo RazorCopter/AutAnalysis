@@ -71,58 +71,132 @@ def _make_radar_chart(
     mean_ref: int = 10,
 ) -> io.BytesIO:
     """
-    Crea un grafico radar (tela di ragno) a 8 assi con:
-    - Profilo paziente (blu navy pieno + fill)
-    - Linea media normativa (rossa tratteggiata)
-    - Anelli concentrici con etichette
+    Crea un grafico radar (tela di ragno) a 8 assi altamente rifinito e dal design moderno:
+    - Raccordo circolare pulito
+    - Fascia normativa ombreggiata (Range Medio 8-12)
+    - Linee di griglia radiali discrete e moderne
+    - Indicatori di valore puntuali per il paziente
+    - Legenda posizionata elegantemente in basso
     """
     labels = [d["codice"] for d in domains]
     patient_values = [d.get("punteggio_standard") or 0 for d in domains]
-    mean_values = [mean_ref] * len(labels)
     n = len(labels)
 
     angles = np.linspace(0, 2 * np.pi, n, endpoint=False).tolist()
     angles += angles[:1]
 
     patient_vals = patient_values + patient_values[:1]
-    mean_vals = mean_values + mean_values[:1]
+    mean_vals = [mean_ref] * (n + 1)
 
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True), dpi=150)
-    fig.patch.set_facecolor('#F8FBFF')
-    ax.set_facecolor('#F8FBFF')
+    fig, ax = plt.subplots(figsize=(7.5, 7.5), subplot_kw=dict(polar=True), dpi=150)
+    fig.patch.set_facecolor('#FFFFFF')
+    ax.set_facecolor('#FFFFFF')
 
+    # Sposta l'asse a 90 gradi (in alto) e inverti la direzione
     ax.set_theta_offset(np.pi / 2)
     ax.set_theta_direction(-1)
 
+    # Imposta gli assi radiali
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=12, fontweight='bold', color='#2D3748')
+    ax.set_xticklabels(labels, fontsize=11, fontweight='bold', color='#1A237E')
+    
+    # Rimuovi il bordo rigido esterno della spina polare
+    ax.spines['polar'].set_visible(False)
 
+    # 1. Disegna la fascia normativa di riferimento "Medio" (punteggio standard 8 - 12)
+    # Crea una sfumatura circolare morbida per evidenziare il range medio ottimale
+    ax.fill_between(
+        np.linspace(0, 2 * np.pi, 100), 
+        8, 12, 
+        color='#4CAF50', 
+        alpha=0.08, 
+        label='Range Medio (8–12)',
+        zorder=1
+    )
+
+    # 2. Linee griglia concentriche estremamente sottili e minimali
     ax.set_ylim(score_min, score_max)
-    ax.set_yticks([0, 4, 8, 12, 16, 20])
-    ax.set_yticklabels(['0', '4', '8', '12', '16', '20'],
-                        fontsize=8, color='#9E9E9E')
-    ax.yaxis.grid(True, color='#DDE7F8', linewidth=0.8)
-    ax.xaxis.grid(True, color='#DDE7F8', linewidth=0.8)
-    ax.spines['polar'].set_color('#90A4AE')
-    ax.spines['polar'].set_linewidth(1.2)
+    ax.set_yticks([4, 8, 12, 16, 20])
+    ax.set_yticklabels(['4', '8', '12', '16', '20'], fontsize=8.5, color='#90A4AE')
+    ax.yaxis.grid(True, color='#ECEFF1', linestyle='-', linewidth=0.8, zorder=2)
+    ax.xaxis.grid(True, color='#ECEFF1', linestyle='-', linewidth=0.8, zorder=2)
 
-    ax.fill(angles, patient_vals, color='#1A237E', alpha=0.10)
-    ax.plot(angles, patient_vals, 'o-', linewidth=2.5, markersize=7,
-            color='#1A237E', markerfacecolor='white', markeredgewidth=2,
-            markeredgecolor='#1A237E', label='Paziente', zorder=5)
+    # 3. Disegna il profilo del paziente (Linea spessa navy + riempimento traslucido)
+    ax.fill(angles, patient_vals, color='#1A237E', alpha=0.15, zorder=3)
+    ax.plot(
+        angles, patient_vals, 
+        'o-', 
+        linewidth=3.0, 
+        markersize=7.5,
+        color='#1A237E', 
+        markerfacecolor='#FFFFFF', 
+        markeredgewidth=2.5,
+        markeredgecolor='#1A237E', 
+        label='Profilo Paziente', 
+        zorder=5
+    )
 
-    ax.plot(angles, mean_vals, '--', linewidth=1.8, color='#E57373',
-            label=f'Media ({mean_ref})', alpha=0.8)
+    # 4. Disegna la linea di media normativa tratteggiata corallo
+    ax.plot(
+        angles, mean_vals, 
+        '--', 
+        linewidth=1.8, 
+        color='#E57373',
+        label=f'Media Normativa ({mean_ref})', 
+        alpha=0.9,
+        zorder=4
+    )
 
-    ax.legend(loc='upper right', bbox_to_anchor=(1.25, 1.12),
-              fontsize=9, framealpha=0.9, edgecolor='#E8EEF8')
+    # 5. Aggiungi piccoli badge testuali con i punteggi reali del paziente accanto ai punti!
+    # Questo rende il grafico super leggibile a colpo d'occhio
+    for i, (angle, val) in enumerate(zip(angles[:-1], patient_values)):
+        # Calcola leggermente all'esterno la posizione del testo
+        r_pos = val + 0.9 if val < 19 else val - 1.2
+        # Allinea in base all'angolo per evitare sovrapposizioni con l'asse
+        ha = 'center'
+        va = 'center'
+        if angle == 0:
+            va = 'bottom'
+        elif angle == np.pi:
+            va = 'top'
+        elif 0 < angle < np.pi:
+            ha = 'left'
+        else:
+            ha = 'right'
+            
+        ax.text(
+            angle, r_pos, 
+            str(val), 
+            color='#1A237E', 
+            fontsize=8.5, 
+            fontweight='bold',
+            ha=ha, 
+            va=va,
+            bbox=dict(boxstyle='round,pad=0.2', facecolor='#F5F7FA', edgecolor='#DDE7F8', alpha=0.95),
+            zorder=6
+        )
 
-    ax.set_title('Profilo Punteggi Standard', fontsize=14,
-                 fontweight='bold', color='#2D3748', pad=24)
+    # 6. Legenda in basso ben formattata
+    ax.legend(
+        loc='lower center', 
+        bbox_to_anchor=(0.5, -0.16),
+        ncol=3,
+        fontsize=9, 
+        frameon=False
+    )
+
+    # Titolo del profilo
+    ax.set_title(
+        'Profilo della Qualità della Vita', 
+        fontsize=13,
+        fontweight='bold', 
+        color='#2D3748', 
+        pad=22
+    )
 
     plt.tight_layout()
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight', facecolor='#F8FBFF', dpi=150)
+    plt.savefig(buf, format='png', bbox_inches='tight', facecolor='#FFFFFF', dpi=150)
     plt.close(fig)
     buf.seek(0)
     return buf
