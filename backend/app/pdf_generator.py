@@ -395,61 +395,54 @@ def _make_san_martin_domain_table(analysis: dict) -> Table:
             
     codes = ["AU", "BE", "BF", "BM", "DI", "SP", "IS", "RI"]
     
-    abbrev_map = {
-        "AU": "Autodet.",
-        "BE": "Beness. Emo.",
-        "BF": "Beness. Fis.",
-        "BM": "Beness. Mat.",
-        "DI": "Diritti",
-        "SP": "Sviluppo Pers.",
-        "IS": "Incl. Sociale",
-        "RI": "Relaz. Inter."
-    }
+    # Estraiamo i valori per ciascun dominio
+    grezzi = []
+    standard = []
+    percentili = []
+    fascie = []
     
-    # Riga 1: Codice
-    r1 = ["Codice"] + [code for code in codes]
-    
-    # Riga 2: Dominio
-    r2 = ["Dominio"] + [abbrev_map.get(code, "") for code in codes]
-    
-    # Riga 3: P. Grezzo
-    r3 = ["P. Grezzo"]
     for code in codes:
         d = domini_map.get(code, {})
-        val = d.get("punteggio_diretto")
-        r3.append(_safe_text(val))
         
-    # Riga 4: P. Standard
-    r4 = ["P. Standard"]
-    for code in codes:
-        d = domini_map.get(code, {})
-        val = d.get("punteggio_standard")
-        r4.append(_safe_text(val))
+        # P. Grezzo
+        g = d.get("punteggio_diretto")
+        grezzi.append(_safe_text(g))
         
-    # Riga 5: Percentile
-    r5 = ["Percentile"]
-    for code in codes:
-        d = domini_map.get(code, {})
-        val = d.get("percentile_dominio")
-        val_str = f"{val}°" if val is not None else "—"
-        r5.append(val_str)
+        # P. Standard
+        s = d.get("punteggio_standard")
+        standard.append(_safe_text(s))
         
-    data = [r1, r2, r3, r4, r5]
+        # Percentile
+        p = d.get("percentile_dominio")
+        p_str = f"{p}°" if p is not None else "—"
+        percentili.append(p_str)
+        
+        # Fascia
+        f = d.get("fascia")
+        fascie.append(_safe_text(f))
+        
+    table_data = [
+        ["Codice", "AU", "BE", "BF", "BM", "DI", "SP", "IS", "RI"],
+        ["Dominio", "Autodet.", "Beness.\nEmo.", "Beness.\nFis.", "Beness.\nMat.", "Diritti", "Sviluppo\nPers.", "Incl.\nSociale", "Relaz.\nInter."],
+        ["P. Grezzo"] + grezzi,
+        ["P. Standard"] + standard,
+        ["Percentile"] + percentili,
+        ["Fascia"] + fascie
+    ]
     
-    col_widths = [80, 48, 48, 48, 48, 48, 48, 48, 48]
+    col_widths = [70, 50, 50, 50, 50, 50, 50, 50, 50]
     
-    table = Table(data, colWidths=col_widths)
+    table = Table(table_data, colWidths=col_widths)
     
     style = TableStyle([
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'), # Prima colonna grassetto
-        ('FONTNAME', (1,0), (-1,0), 'Helvetica-Bold'), # Prima riga grassetto
+        ('FONTNAME', (0,0), (-1,1), 'Helvetica-Bold'), # Prime due righe grassetto
         ('FONTSIZE', (0,0), (-1,-1), 8), # FONT PICCOLO per farci stare tutto!
-        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.grey),
-        ('BOX', (0,0), (-1,-1), 1, colors.black),
-        ('BACKGROUND', (0,0), (0,-1), colors.lightgrey), # Sfondo colonna etichette
-        ('BACKGROUND', (1,0), (-1,0), colors.whitesmoke), # Sfondo riga codici
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ('BACKGROUND', (0,0), (-1,1), colors.lightgrey), # Sfondo righe intestazione
+        ('BACKGROUND', (0,2), (0,-1), colors.whitesmoke), # Sfondo colonna etichette
         ('BOTTOMPADDING', (0,0), (-1,-1), 6),
         ('TOPPADDING', (0,0), (-1,-1), 6),
     ])
