@@ -1460,151 +1460,176 @@ class _QualityOfLifeHorizontalPainter extends StatelessWidget {
 class _QolHorizontalTablePainter extends CustomPainter {
   final List<DomainAnalysis> domains;
 
-  static const List<_FasciaBand> _fascie = [
-    _FasciaBand(label: 'Molto Alto',  min: 16, max: 20, color: Color(0xFF388E3C)),
-    _FasciaBand(label: 'Alto',       min: 13, max: 15, color: Color(0xFF7CB342)),
-    _FasciaBand(label: 'Medio',      min:  8, max: 12, color: Color(0xFFFBC02D)),
-    _FasciaBand(label: 'Basso',      min:  5, max:  7, color: Color(0xFFF57C00)),
-    _FasciaBand(label: 'Molto Basso',min:  1, max:  4, color: Color(0xFFD32F2F)),
-  ];
-
-
-
   _QolHorizontalTablePainter({required this.domains});
 
   @override
   void paint(Canvas canvas, Size size) {
-    const labelWidth = 72.0;
-    const headerHeight = 44.0;
-    const rowHeight = 48.0;
-    const barAreaX = labelWidth + 8;
-    const barAreaWidth = 520.0;
-    const scoreBoxWidth = 52.0;
-    const rightX = barAreaX + barAreaWidth + scoreBoxWidth + 16;
+    const double leftMargin = 80.0;
+    const double rightMargin = 24.0;
+    const double topMargin = 24.0;
+    const double bottomMargin = 88.0;
+    final double chartHeight = size.height - topMargin - bottomMargin;
+    final double chartWidth = size.width - leftMargin - rightMargin;
+
     final gridPaint = Paint()
       ..color = const Color(0xFFDDE7F8)
-      ..strokeWidth = 0.5
+      ..strokeWidth = 0.6
       ..style = PaintingStyle.stroke;
 
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, rightX, headerHeight),
-      Paint()..color = const Color(0xFFF0F5FF),
-    );
-
-    final headerStyle = TextStyle(
-      color: Colors.white,
-      fontSize: 12,
-      fontWeight: FontWeight.bold,
-    );
-
-    _drawText(canvas, 'Dominio', 8, headerHeight / 2, headerStyle, anchor: Alignment.centerLeft);
-    _drawText(canvas, '1', barAreaX + barAreaWidth * 0 / 4, headerHeight / 2, headerStyle, anchor: Alignment.center);
-    _drawText(canvas, '5', barAreaX + barAreaWidth * 1 / 4, headerHeight / 2, headerStyle, anchor: Alignment.center);
-    _drawText(canvas, '10', barAreaX + barAreaWidth * 2 / 4, headerHeight / 2, headerStyle, anchor: Alignment.center);
-    _drawText(canvas, '15', barAreaX + barAreaWidth * 3 / 4, headerHeight / 2, headerStyle, anchor: Alignment.center);
-    _drawText(canvas, '20', barAreaX + barAreaWidth, headerHeight / 2, headerStyle, anchor: Alignment.center);
-    _drawText(canvas, 'P.STD', barAreaX + barAreaWidth + 16, headerHeight / 2, headerStyle, anchor: Alignment.centerLeft);
-
-    for (var i = 0; i <= 4; i++) {
-      final x = barAreaX + (barAreaWidth * i / 4);
-      canvas.drawLine(
-        Offset(x, headerHeight),
-        Offset(x, headerHeight + domains.length * rowHeight),
-        gridPaint,
-      );
+    // Helper per convertire il punteggio standard (1-20) in coordinata Y (verticale)
+    double getValY(double score) {
+      final fraction = (score - 1.0) / 19.0;
+      return (topMargin + chartHeight) - (fraction * chartHeight);
     }
 
-    for (var d = 0; d < domains.length; d++) {
-      final domain = domains[d];
-      final y = headerHeight + (d * rowHeight);
-      final rowPaint = Paint()..color = (d.isOdd) ? const Color(0xFFF8FBFF) : Colors.white;
-      canvas.drawRect(Rect.fromLTWH(0, y, rightX, rowHeight), rowPaint);
-      canvas.drawLine(Offset(0, y + rowHeight), Offset(rightX, y + rowHeight), gridPaint);
+    // 1. Disegna le 5 fasce normative orizzontali di sfondo
+    final bandItems = [
+      (label: 'Molto Alto',  minScore: 15.5, maxScore: 20.0, color: const Color(0xFF388E3C)),
+      (label: 'Alto',        minScore: 12.5, maxScore: 15.5, color: const Color(0xFF7CB342)),
+      (label: 'Medio',       minScore: 7.5,  maxScore: 12.5, color: const Color(0xFFFBC02D)),
+      (label: 'Basso',       minScore: 4.5,  maxScore: 7.5,  color: const Color(0xFFF57C00)),
+      (label: 'Molto Basso', minScore: 1.0,  maxScore: 4.5,  color: const Color(0xFFD32F2F)),
+    ];
 
-      final domainColor = _getDomainColor(d);
-      final labelStyle = TextStyle(
+    for (final band in bandItems) {
+      final topY = getValY(band.maxScore);
+      final bottomY = getValY(band.minScore);
+      
+      final rect = Rect.fromLTRB(leftMargin, topY, size.width - rightMargin, bottomY);
+      final bandPaint = Paint()
+        ..color = band.color.withValues(alpha: 0.14)
+        ..style = PaintingStyle.fill;
+      canvas.drawRect(rect, bandPaint);
+
+      // Scrive l'etichetta della fascia sul lato sinistro all'interno della banda
+      final bandLabelStyle = TextStyle(
+        color: band.color.withValues(alpha: 0.7),
+        fontSize: 8.5,
+        fontWeight: FontWeight.bold,
+      );
+      _drawText(canvas, band.label, leftMargin + 8, (topY + bottomY) / 2, bandLabelStyle, anchor: Alignment.centerLeft);
+    }
+
+    // 2. Disegna le linee griglia orizzontali per i punteggi chiave (1, 5, 10, 15, 20)
+    final gridScores = [1.0, 5.0, 10.0, 15.0, 20.0];
+    for (final score in gridScores) {
+      final y = getValY(score);
+      canvas.drawLine(
+        Offset(leftMargin, y),
+        Offset(size.width - rightMargin, y),
+        gridPaint,
+      );
+
+      final scoreStyle = const TextStyle(
+        color: Color(0xFF718096),
+        fontSize: 10,
+        fontWeight: FontWeight.bold,
+      );
+      _drawText(canvas, score.toInt().toString(), leftMargin - 12, y, scoreStyle, anchor: Alignment.centerRight);
+    }
+
+    // 3. Calcola colonne dei domini
+    if (domains.isEmpty) return;
+    final double colWidth = chartWidth / domains.length;
+
+    // Disegna separatori verticali griglia e scritte
+    for (var i = 0; i < domains.length; i++) {
+      final d = domains[i];
+      final colX = leftMargin + (i * colWidth) + (colWidth / 2);
+
+      // Separatore verticale (tra le colonne)
+      if (i > 0) {
+        final separatorX = leftMargin + (i * colWidth);
+        canvas.drawLine(
+          Offset(separatorX, topMargin),
+          Offset(separatorX, topMargin + chartHeight),
+          gridPaint,
+        );
+      }
+
+      // Codice del dominio (es. AU) sotto l'asse X
+      final domainColor = _getDomainColor(i);
+      final codeStyle = TextStyle(
         color: domainColor,
         fontSize: 12,
         fontWeight: FontWeight.bold,
       );
-      _drawText(canvas, domain.codice, 8, y + rowHeight / 2, labelStyle, anchor: Alignment.centerLeft);
+      _drawText(canvas, d.codice, colX, topMargin + chartHeight + 14, codeStyle, anchor: Alignment.center);
 
-      for (var f = 0; f < _fascie.length; f++) {
-        final band = _fascie[f];
-        final bandY = y + (f * rowHeight / _fascie.length);
-        final bandHeight = rowHeight / _fascie.length;
+      // Nome completo esteso (es. Autodeterminazione) con wrapping intelligente
+      final labelStyle = const TextStyle(
+        color: Color(0xFF2D3748),
+        fontSize: 9.0,
+        fontWeight: FontWeight.w600,
+        height: 1.1,
+      );
+      _drawWrappedText(canvas, d.etichetta, colX, topMargin + chartHeight + 28, colWidth - 6, labelStyle);
+    }
 
-        final bandPaint = Paint()
-          ..color = band.color.withValues(alpha: 0.18)
-          ..style = PaintingStyle.fill;
-        canvas.drawRect(
-          Rect.fromLTWH(barAreaX, bandY, barAreaWidth, bandHeight),
-          bandPaint,
-        );
-
-        final bandLabelStyle = TextStyle(
-          color: band.color.withValues(alpha: 0.6),
-          fontSize: 8,
-          fontWeight: FontWeight.w500,
-        );
-        _drawText(canvas, band.label, barAreaX + 4, bandY + bandHeight / 2, bandLabelStyle, anchor: Alignment.centerLeft);
-
-        final bandRightStyle = TextStyle(
-          color: band.color.withValues(alpha: 0.6),
-          fontSize: 8,
-          fontWeight: FontWeight.w500,
-        );
-        _drawText(canvas, '${band.min}-${band.max}', barAreaX + barAreaWidth - 4, bandY + bandHeight / 2, bandRightStyle, anchor: Alignment.centerRight);
-      }
-
-      canvas.drawRect(Rect.fromLTWH(barAreaX, y, barAreaWidth, rowHeight), gridPaint);
-
-      final stdScore = domain.punteggioStandard;
+    // 4. Collega i punteggi con una linea di profilo blue/navy semi-trasparente
+    final profilePoints = <Offset>[];
+    for (var i = 0; i < domains.length; i++) {
+      final d = domains[i];
+      final stdScore = d.punteggioStandard;
       if (stdScore != null) {
-        final scoreX = barAreaX + (stdScore / 20.0) * barAreaWidth;
-        final bandColor = _getFasciaColor(domain.fascia);
+        final colX = leftMargin + (i * colWidth) + (colWidth / 2);
+        final scoreY = getValY(stdScore.toDouble());
+        profilePoints.add(Offset(colX, scoreY));
+      }
+    }
+
+    if (profilePoints.length > 1) {
+      final linePaint = Paint()
+        ..color = const Color(0xFF1A237E).withValues(alpha: 0.45)
+        ..strokeWidth = 2.5
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      final path = Path();
+      path.moveTo(profilePoints[0].dx, profilePoints[0].dy);
+      for (var i = 1; i < profilePoints.length; i++) {
+        path.lineTo(profilePoints[i].dx, profilePoints[i].dy);
+      }
+      canvas.drawPath(path, linePaint);
+    }
+
+    // 5. Disegna i cerchietti punteggio (Badge) per ciascun dominio
+    for (var i = 0; i < domains.length; i++) {
+      final d = domains[i];
+      final stdScore = d.punteggioStandard;
+      if (stdScore != null) {
+        final colX = leftMargin + (i * colWidth) + (colWidth / 2);
+        final scoreY = getValY(stdScore.toDouble());
+        final bandColor = _getFasciaColor(d.fascia);
 
         final circlePaint = Paint()
           ..color = bandColor
           ..style = PaintingStyle.fill;
-        canvas.drawCircle(Offset(scoreX, y + rowHeight / 2), 13, circlePaint);
+        canvas.drawCircle(Offset(colX, scoreY), 13, circlePaint);
 
         final circleBorderPaint = Paint()
           ..color = bandColor
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.5;
-        canvas.drawCircle(Offset(scoreX, y + rowHeight / 2), 16, circleBorderPaint);
+        canvas.drawCircle(Offset(colX, scoreY), 16, circleBorderPaint);
 
         final whiteCirclePaint = Paint()
           ..color = Colors.white
           ..style = PaintingStyle.fill;
-        canvas.drawCircle(Offset(scoreX, y + rowHeight / 2), 11, whiteCirclePaint);
-        canvas.drawCircle(Offset(scoreX, y + rowHeight / 2), 11, circleBorderPaint);
+        canvas.drawCircle(Offset(colX, scoreY), 11, whiteCirclePaint);
+        canvas.drawCircle(Offset(colX, scoreY), 11, circleBorderPaint);
 
         final scoreTextStyle = TextStyle(
           color: bandColor,
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.bold,
         );
-        _drawText(canvas, stdScore.toString(), scoreX, y + rowHeight / 2, scoreTextStyle, anchor: Alignment.center);
+        _drawText(canvas, stdScore.toString(), colX, scoreY, scoreTextStyle, anchor: Alignment.center);
       }
-
-      final scoreTextStyle = TextStyle(
-        color: _getFasciaColor(domain.fascia),
-        fontSize: 13,
-        fontWeight: FontWeight.bold,
-      );
-      final scoreText = domain.punteggioStandard?.toString() ?? '—';
-      _drawText(canvas, scoreText, barAreaX + barAreaWidth + scoreBoxWidth / 2, y + rowHeight / 2, scoreTextStyle, anchor: Alignment.center);
-
-      canvas.drawLine(
-        Offset(barAreaX + barAreaWidth, y),
-        Offset(barAreaX + barAreaWidth, y + rowHeight),
-        gridPaint,
-      );
     }
 
-    final legendY = headerHeight + domains.length * rowHeight + 12;
+    // 6. Disegna la legenda in fondo
+    final legendY = size.height - 18.0;
     const legendItems = [
       ('Molto Basso', Color(0xFFD32F2F)),
       ('Basso',       Color(0xFFF57C00)),
@@ -1613,7 +1638,7 @@ class _QolHorizontalTablePainter extends CustomPainter {
       ('Molto Alto',  Color(0xFF388E3C)),
     ];
 
-    var legendX = labelWidth;
+    var legendX = leftMargin + (chartWidth - 5 * 84) / 2;
     for (final item in legendItems) {
       final legendPaint = Paint()
         ..color = item.$2
@@ -1622,13 +1647,13 @@ class _QolHorizontalTablePainter extends CustomPainter {
         RRect.fromRectAndRadius(Rect.fromLTWH(legendX, legendY, 10, 10), const Radius.circular(2)),
         legendPaint,
       );
-      final legendStyle = TextStyle(
-        color: const Color(0xFF718096),
+      final legendStyle = const TextStyle(
+        color: Color(0xFF718096),
         fontSize: 9,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w600,
       );
-      _drawText(canvas, item.$1, legendX + 16, legendY + 6, legendStyle, anchor: Alignment.centerLeft);
-      legendX += 72;
+      _drawText(canvas, item.$1, legendX + 16, legendY + 5, legendStyle, anchor: Alignment.centerLeft);
+      legendX += 84;
     }
   }
 
@@ -1642,6 +1667,15 @@ class _QolHorizontalTablePainter extends CustomPainter {
     if (anchor == Alignment.center) dx -= tp.width / 2;
     if (anchor == Alignment.centerRight) dx -= tp.width;
     tp.paint(canvas, Offset(dx, dy));
+  }
+
+  void _drawWrappedText(Canvas canvas, String text, double x, double y, double maxWidth, TextStyle style) {
+    final tp = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+    )..layout(maxWidth: maxWidth);
+    tp.paint(canvas, Offset(x - tp.width / 2, y));
   }
 
   Color _getDomainColor(int index) {
@@ -1666,20 +1700,6 @@ class _QolHorizontalTablePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _QolHorizontalTablePainter oldDelegate) {
-    return true;
+    return oldDelegate.domains != domains;
   }
-}
-
-class _FasciaBand {
-  final String label;
-  final int min;
-  final int max;
-  final Color color;
-
-  const _FasciaBand({
-    required this.label,
-    required this.min,
-    required this.max,
-    required this.color,
-  });
 }
