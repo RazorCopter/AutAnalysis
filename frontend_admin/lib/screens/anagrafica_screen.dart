@@ -54,6 +54,7 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
     final altezzaController = TextEditingController(text: patient?.altezza?.toString() ?? '');
     final pesoController = TextEditingController(text: patient?.peso?.toString() ?? '');
     final dataNascitaController = TextEditingController(text: patient?.dataNascita != null ? _formatDateString(patient!.dataNascita!) : '');
+    String? selectedSesso = patient?.sesso;
     final noteController = TextEditingController(text: patient?.note ?? '');
 
     final _formKey = GlobalKey<FormState>();
@@ -128,37 +129,62 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: dataNascitaController,
-                  readOnly: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Data di Nascita',
-                    prefixIcon: Icon(Icons.cake_outlined),
-                    hintText: 'Seleziona data di nascita...',
-                  ),
-                  onTap: () async {
-                    DateTime initialDate = DateTime(1990);
-                    if (dataNascitaController.text.isNotEmpty) {
-                      try {
-                        final parts = dataNascitaController.text.split('/');
-                        if (parts.length == 3) {
-                          initialDate = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
-                        }
-                      } catch (_) {}
-                    }
-                    final DateTime? picked = await showDatePicker(
-                      context: context,
-                      initialDate: initialDate,
-                      firstDate: DateTime(1900),
-                      lastDate: DateTime.now(),
-                    );
-                    if (picked != null) {
-                      final day = picked.day.toString().padLeft(2, '0');
-                      final month = picked.month.toString().padLeft(2, '0');
-                      final year = picked.year.toString();
-                      dataNascitaController.text = '$day/$month/$year';
-                    }
-                  },
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: TextFormField(
+                        controller: dataNascitaController,
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Data di Nascita',
+                          prefixIcon: Icon(Icons.cake_outlined),
+                          hintText: 'Seleziona...',
+                        ),
+                        onTap: () async {
+                          DateTime initialDate = DateTime(1990);
+                          if (dataNascitaController.text.isNotEmpty) {
+                            try {
+                              final parts = dataNascitaController.text.split('/');
+                              if (parts.length == 3) {
+                                initialDate = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+                              }
+                            } catch (_) {}
+                          }
+                          final DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: initialDate,
+                            firstDate: DateTime(1900),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            final day = picked.day.toString().padLeft(2, '0');
+                            final month = picked.month.toString().padLeft(2, '0');
+                            final year = picked.year.toString();
+                            dataNascitaController.text = '$day/$month/$year';
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: selectedSesso,
+                        decoration: const InputDecoration(
+                          labelText: 'Sesso',
+                          prefixIcon: Icon(Icons.wc_outlined),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'M', child: Text('M')),
+                          DropdownMenuItem(value: 'F', child: Text('F')),
+                        ],
+                        onChanged: (val) {
+                          selectedSesso = val;
+                        },
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -185,6 +211,7 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
                             altezza: int.tryParse(altezzaController.text.trim()),
                             peso: double.tryParse(pesoController.text.trim().replaceAll(',', '.')),
                             dataNascita: _parseDateString(dataNascitaController.text.trim()),
+                            sesso: selectedSesso,
                             note: noteController.text.trim(),
                           );
 
@@ -511,7 +538,9 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
                       Text(
                         [
                           if (patient.dataNascita != null && patient.dataNascita!.isNotEmpty)
-                            'Nato il ${_formatDateString(patient.dataNascita!)}',
+                            '${patient.sesso == 'F' ? 'Nata' : 'Nato'} il ${_formatDateString(patient.dataNascita!)}${patient.sesso != null ? ' (${patient.sesso})' : ''}'
+                          else if (patient.sesso != null && patient.sesso!.isNotEmpty)
+                            'Sesso: ${patient.sesso}',
                           if (patient.altezza != null) '${patient.altezza} cm',
                           if (patient.peso != null) '${patient.peso} kg',
                         ].join(' • '),

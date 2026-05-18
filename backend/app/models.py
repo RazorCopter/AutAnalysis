@@ -12,6 +12,7 @@ class Patient(BaseModel):
     altezza: Optional[int] = None
     peso: Optional[float] = None
     data_nascita: Optional[str] = None
+    sesso: Optional[str] = None
     note: Optional[str] = None
 
 # --- MODELLI SETTINGS (Config Models) ---

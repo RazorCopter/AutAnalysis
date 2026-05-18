@@ -53,7 +53,31 @@ class _AdminDashboardState extends State<AdminDashboard> {
           // Sidebar
           _buildSidebar(),
           // Contenuto principale
-          Expanded(child: _buildBody()),
+          Expanded(
+            child: Stack(
+              children: [
+                // Filigrana/Background Bradipo Stilizzato
+                Positioned(
+                  bottom: -60,
+                  right: -60,
+                  width: 480,
+                  height: 480,
+                  child: IgnorePointer(
+                    child: Opacity(
+                      opacity: 0.06,
+                      child: Image.asset(
+                        'assets/images/sloth_cool_bg.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: _buildBody(),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
