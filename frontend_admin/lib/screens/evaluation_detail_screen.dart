@@ -569,44 +569,6 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     );
   }
 
-  Widget _buildSanMartinSummarySection() {
-    if (_isLoadingAnalysis) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-              SizedBox(width: 12),
-              Text(
-                'Caricamento riepilogo psicometrico San Martin...',
-                style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (_analysis == null) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'Analisi San Martin non disponibile. Controlla i log DEBUG AUTANALYSIS per verificare payload e parsing.',
-            style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
-          ),
-        ),
-      );
-    }
-
-    return _buildQvSummaryCard();
-  }
-
   // ─── Grafico visivo Qualità della Vita (CustomPainter) ─────────────────────
   Widget _buildQvGraphicTable() {
     if (!_shouldUseSanMartinUi || _analysis == null) return const SizedBox();
@@ -631,7 +593,8 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
               builder: (context, constraints) {
                 return SizedBox(
                   width: constraints.maxWidth,
-                  child: _QualityOfLifePainter(
+                  height: 480.0,
+                  child: _QualityOfLifeHorizontalPainter(
                     domains: _analysis!.domini,
                   ),
                 );
@@ -919,7 +882,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                 final idx = val.toInt();
                 if (idx < 0 || idx >= items.length) return const SizedBox();
                 final name = items is List<DomainAnalysis>
-                    ? (items as List<DomainAnalysis>)[idx].etichetta
+                    ? items[idx].etichetta
                     : (items as List<DomainScore>)[idx].etichetta;
                 return Padding(
                   padding: const EdgeInsets.only(top: 6),
@@ -965,7 +928,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
         barGroups: items.asMap().entries.map((e) {
           final color = _domainColors[e.key % _domainColors.length];
           final value = items is List<DomainAnalysis>
-              ? (items as List<DomainAnalysis>)[e.key].punteggioDiretto
+              ? items[e.key].punteggioDiretto
               : (items as List<DomainScore>)[e.key].punteggio;
           return BarChartGroupData(
             x: e.key,
@@ -1460,11 +1423,7 @@ class _QolHorizontalTablePainter extends CustomPainter {
     _FasciaBand(label: 'Molto Basso',min:  1, max:  4, color: Color(0xFFD32F2F)),
   ];
 
-  static const List<Color> _domainColors = [
-    Color(0xFF1A237E), Color(0xFFE53935), Color(0xFF43A047),
-    Color(0xFFFB8C00), Color(0xFF8E24AA), Color(0xFF00ACC1),
-    Color(0xFF3949AB), Color(0xFFF4511E),
-  ];
+
 
   _QolHorizontalTablePainter({required this.domains});
 
@@ -1477,9 +1436,6 @@ class _QolHorizontalTablePainter extends CustomPainter {
     const barAreaWidth = 520.0;
     const scoreBoxWidth = 52.0;
     const rightX = barAreaX + barAreaWidth + scoreBoxWidth + 16;
-    const numRows = 5;
-
-    final headerPaint = Paint()..color = const Color(0xFF1A237E);
     final gridPaint = Paint()
       ..color = const Color(0xFFDDE7F8)
       ..strokeWidth = 0.5
@@ -1581,7 +1537,7 @@ class _QolHorizontalTablePainter extends CustomPainter {
         canvas.drawCircle(Offset(scoreX, y + rowHeight / 2), 11, circleBorderPaint);
 
         final scoreTextStyle = TextStyle(
-          color: fasciaColor,
+          color: bandColor,
           fontSize: 12,
           fontWeight: FontWeight.bold,
         );
@@ -1612,7 +1568,7 @@ class _QolHorizontalTablePainter extends CustomPainter {
       ('Molto Alto',  Color(0xFF388E3C)),
     ];
 
-    var legendX = labelColW;
+    var legendX = labelWidth;
     for (final item in legendItems) {
       final legendPaint = Paint()
         ..color = item.$2
@@ -1664,7 +1620,7 @@ class _QolHorizontalTablePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _QualityOfLifeTablePainter oldDelegate) {
+  bool shouldRepaint(covariant _QolHorizontalTablePainter oldDelegate) {
     return true;
   }
 }
