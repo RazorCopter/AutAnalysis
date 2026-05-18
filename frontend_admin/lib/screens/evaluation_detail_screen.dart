@@ -731,7 +731,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
       builder: (context, constraints) {
         final availableWidth = constraints.maxWidth;
         final chartSize =
-            math.min(availableWidth - 80, 380.0).clamp(260.0, 380.0).toDouble();
+            math.min(availableWidth - 36, 430.0).clamp(280.0, 430.0).toDouble();
 
         return Column(
           children: [
@@ -828,7 +828,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
 
   List<Widget> _buildRadarAxisLabels(List<DomainAnalysis> domains, double chartSize) {
     final center = chartSize / 2;
-    final labelRadius = (chartSize / 2) + 26;
+    final labelRadius = (chartSize / 2) + 12;
     const labelWidth = 76.0;
 
     return List<Widget>.generate(domains.length, (index) {
