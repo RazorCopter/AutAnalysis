@@ -684,17 +684,24 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     'Molto Alto':  Color(0xFF388E3C),
   };
 
-  Widget _fasciaBadge(String fascia) {
-    final color = _fasciaColorMap[fascia] ?? AppTheme.textSecondary;
+  Widget _fasciaBadge(String? fascia, [Color? color]) {
+    final text = fascia ?? '—';
+    final resolvedColor = color ?? _fasciaColorMap[text] ?? AppTheme.textSecondary;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: resolvedColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
+        border: Border.all(color: resolvedColor.withValues(alpha: 0.4)),
       ),
-      child: Text(fascia,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: resolvedColor,
+        ),
+      ),
     );
   }
   Widget _buildChartCard() {
@@ -1091,25 +1098,6 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
             fontWeight: FontWeight.bold,
             color: fasciaColor,
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _fasciaBadge(String? fascia, Color color) {
-    final text = fascia ?? '—';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: color,
         ),
       ),
     );
