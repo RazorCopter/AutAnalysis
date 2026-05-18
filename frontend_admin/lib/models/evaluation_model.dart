@@ -175,3 +175,38 @@ class AggregatedEvaluation {
     );
   }
 }
+
+class EvaluationModel {
+  final String idPaziente;
+  final String idScala;
+  final int anno;
+  final String nomeOperatore;
+  final String? nomeIntervistato;
+  final String? dataCompilazione;
+  final Map<String, dynamic>? demographics;
+  final List<AnswerModel> risposte;
+
+  EvaluationModel({
+    required this.idPaziente,
+    required this.idScala,
+    required this.anno,
+    required this.nomeOperatore,
+    this.nomeIntervistato,
+    this.dataCompilazione,
+    this.demographics,
+    required this.risposte,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id_paziente': idPaziente,
+      'id_scala': idScala,
+      'anno': anno,
+      'nome_operatore': nomeOperatore,
+      if (nomeIntervistato != null) 'nome_intervistato': nomeIntervistato,
+      if (dataCompilazione != null) 'data_compilazione': dataCompilazione,
+      if (demographics != null) 'demographics': demographics,
+      'risposte': risposte.map((e) => e.toJson()).toList(),
+    };
+  }
+}

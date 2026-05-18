@@ -3,6 +3,7 @@ import 'app_version.dart';
 import 'screens/settings_screen.dart';
 import 'screens/protocols_screen.dart';
 import 'screens/anagrafica_screen.dart';
+import 'screens/selection_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -35,6 +36,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   static const _navItems = [
     (icon: Icons.dashboard_outlined, active: Icons.dashboard, label: 'Dashboard'),
+    (icon: Icons.edit_note_outlined, active: Icons.edit_note, label: 'Compila'),
     (icon: Icons.people_outline, active: Icons.people, label: 'Utenza'),
     (icon: Icons.library_books_outlined, active: Icons.library_books, label: 'Protocolli'),
     (icon: Icons.settings_outlined, active: Icons.settings, label: 'Impostazioni'),
@@ -166,9 +168,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 250),
       child: switch (_selectedIndex) {
-        1 => const AnagraficaScreen(),
-        2 => const ProtocolsScreen(),
-        3 => const SettingsScreen(),
+        1 => const SelectionScreen(),
+        2 => const AnagraficaScreen(),
+        3 => const ProtocolsScreen(),
+        4 => const SettingsScreen(),
         _ => _buildPlaceholder(),
       },
     );
