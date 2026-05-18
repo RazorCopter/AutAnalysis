@@ -199,6 +199,228 @@ def _make_table(headers: list, rows: list, col_widths: list,
     return t
 
 
+def _safe_text(value: object, fallback: str = "—") -> str:
+    if value is None:
+        return fallback
+    text = str(value).strip()
+    return text if text else fallback
+
+
+def _format_pdf_date(value: object) -> str:
+    if isinstance(value, datetime):
+        return value.strftime("%d/%m/%Y")
+    try:
+        return datetime.fromisoformat(str(value)).strftime("%d/%m/%Y")
+    except Exception:
+        text = str(value).strip()
+        return text[:10] if text else "—"
+
+
+def _make_label_value_paragraph(
+    label: str,
+    value: object,
+    styles,
+    value_fallback: str = "—",
+) -> Paragraph:
+    safe_value = _safe_text(value, value_fallback)
+    return Paragraph(
+        f"<b>{label}</b> {safe_value}",
+        ParagraphStyle(
+            f"{label}_cell",
+            parent=styles["BodyText"],
+            fontName="Helvetica",
+            fontSize=9,
+            leading=12,
+            textColor=DARK_TEXT,
+        ),
+    )
+
+
+def _make_san_martin_meta_table(
+    evaluation: dict,
+    patient: dict,
+    scale: dict,
+    styles,
+) -> Table:
+    patient_name = f"{patient.get('nome', '')} {patient.get('cognome', '')}".strip() or "—"
+    clinical_bits = []
+    if patient.get("altezza"):
+        clinical_bits.append(f"{patient['altezza']} cm")
+    if patient.get("peso"):
+        clinical_bits.append(f"{patient['peso']} kg")
+
+    notes_value = _safe_text(patient.get("note"), "")
+    if len(notes_value) > 140:
+        notes_value = f"{notes_value[:137]}..."
+
+    rows = [
+        [
+            _make_label_value_paragraph("Paziente:", patient_name, styles),
+            _make_label_value_paragraph("Data:", _format_pdf_date(evaluation.get("data_compilazione")), styles),
+            _make_label_value_paragraph("Scala:", scale.get("nome"), styles),
+            _make_label_value_paragraph("Operatore:", evaluation.get("nome_operatore"), styles),
+        ],
+        [
+            _make_label_value_paragraph("Intervistato/a:", evaluation.get("nome_intervistato"), styles),
+            _make_label_value_paragraph("Anno:", evaluation.get("anno"), styles),
+            _make_label_value_paragraph("ID valutazione:", _safe_text(evaluation.get("id_valutazione"))[:12], styles),
+            _make_label_value_paragraph(
+                "Dati clinici:",
+                " / ".join(clinical_bits) if clinical_bits else "—",
+                styles,
+            ),
+        ],
+    ]
+
+    if notes_value:
+        rows.append([
+            _make_label_value_paragraph("Note cliniche:", notes_value, styles, ""),
+            Paragraph("", styles["BodyText"]),
+            Paragraph("", styles["BodyText"]),
+            Paragraph("", styles["BodyText"]),
+        ])
+
+    table_style = [
+        ('BACKGROUND', (0, 0), (-1, -1), white),
+        ('ROWBACKGROUNDS', (0, 0), (-1, -1), [LIGHT_GREY, white]),
+        ('BOX', (0, 0), (-1, -1), 0.6, BORDER),
+        ('INNERGRID', (0, 0), (-1, -1), 0.3, BORDER),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 7),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+    ]
+    if notes_value:
+        table_style.append(('SPAN', (0, 2), (-1, 2)))
+
+    table = Table(rows, colWidths=[4.0 * cm, 4.0 * cm, 4.7 * cm, 4.1 * cm])
+    table.setStyle(TableStyle(table_style))
+    return table
+
+
+def _make_qv_summary_table(analysis: dict, styles) -> Table:
+    summary_title = Paragraph(
+        "Riepilogo Psicometrico San Martín",
+        ParagraphStyle(
+            "QvSummaryTitle",
+            parent=styles["BodyText"],
+            fontSize=12,
+            leading=14,
+            textColor=white,
+            fontName="Helvetica-Bold",
+        ),
+    )
+    fascia_value = _safe_text(analysis.get("fascia_qv"))
+    fascia_color = FASCIA_COLORS.get(fascia_value, '#FFFFFF')
+
+    rows = [
+        [
+            summary_title,
+            Paragraph(
+                f"<b>Indice QV</b><br/><font size='18'>{_safe_text(analysis.get('indice_qv'))}</font>",
+                ParagraphStyle(
+                    "QvMetricValue",
+                    parent=styles["BodyText"],
+                    fontName="Helvetica",
+                    fontSize=10,
+                    leading=13,
+                    alignment=TA_CENTER,
+                    textColor=white,
+                ),
+            ),
+            Paragraph(
+                f"<b>Percentile</b><br/><font size='18'>{_safe_text(analysis.get('percentile'))}</font>",
+                ParagraphStyle(
+                    "QvPercentileValue",
+                    parent=styles["BodyText"],
+                    fontName="Helvetica",
+                    fontSize=10,
+                    leading=13,
+                    alignment=TA_CENTER,
+                    textColor=HexColor('#AED581'),
+                ),
+            ),
+        ],
+        [
+            Paragraph(
+                f"Somma punteggi standard: <b>{_safe_text(analysis.get('somma_punteggi_standard'))}</b>",
+                ParagraphStyle(
+                    "QvSecondaryMetric",
+                    parent=styles["BodyText"],
+                    fontSize=10,
+                    leading=12,
+                    textColor=white,
+                    fontName="Helvetica",
+                ),
+            ),
+            Paragraph(
+                f"Fascia: <font color='{fascia_color}'><b>{fascia_value}</b></font>",
+                ParagraphStyle(
+                    "QvFasciaMetric",
+                    parent=styles["BodyText"],
+                    fontSize=10,
+                    leading=12,
+                    textColor=white,
+                    fontName="Helvetica",
+                    alignment=TA_CENTER,
+                ),
+            ),
+            Paragraph("", styles["BodyText"]),
+        ],
+    ]
+
+    table = Table(rows, colWidths=[8.2 * cm, 4.5 * cm, 4.7 * cm])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), PRIMARY),
+        ('BOX', (0, 0), (-1, -1), 0, PRIMARY),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('SPAN', (1, 1), (2, 1)),
+    ]))
+    return table
+
+
+def _make_san_martin_domain_table(analysis: dict) -> Table:
+    headers = ["Codice", "Dominio", "P. Grezzo", "P. Standard", "Fascia"]
+    rows = []
+    for domain in analysis.get("domini", []):
+        fascia = _safe_text(domain.get("fascia"))
+        rows.append([
+            _safe_text(domain.get("codice")),
+            _safe_text(domain.get("etichetta")),
+            _safe_text(domain.get("punteggio_diretto")),
+            _safe_text(domain.get("punteggio_standard")),
+            Paragraph(
+                fascia,
+                ParagraphStyle(
+                    f"fascia_{domain.get('codice', '')}",
+                    fontSize=8,
+                    leading=10,
+                    fontName="Helvetica-Bold",
+                    textColor=HexColor(FASCIA_COLORS.get(fascia, '#2D3748')),
+                    alignment=TA_CENTER,
+                ),
+            ),
+        ])
+
+    table = _make_table(
+        headers=headers,
+        rows=rows,
+        col_widths=[1.8 * cm, 7.8 * cm, 2.6 * cm, 2.8 * cm, 3.0 * cm],
+        header_color=PRIMARY,
+        style_extras=[
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('ALIGN', (2, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ],
+    )
+    return table
+
+
 # ─── Generazione PDF completo ────────────────────────────────────────────────
 
 def generate_evaluation_pdf(
@@ -238,7 +460,14 @@ def generate_evaluation_pdf(
 
     has_analysis = analysis is not None and analysis.get("indice_qv") is not None
     scala_nome = scale.get("nome", "")
-    is_sanmartin = has_analysis and "San Martín" in scala_nome
+    normalized_scale_name = str(scala_nome).lower().replace(" ", "").replace("-", "")
+    is_sanmartin = (
+        analysis is not None and (
+            "sanmartin" in normalized_scale_name or
+            analysis.get("indice_qv") is not None or
+            analysis.get("fascia_qv") is not None
+        )
+    )
 
     # ── Header ─────────────────────────────────────────────────────────────
     story.append(Paragraph("AutAnalysis", title_style))
@@ -265,106 +494,49 @@ def generate_evaluation_pdf(
             story.append(Spacer(1, 0.3 * cm))
 
     # ── Info paziente / valutazione ─────────────────────────────────────────
-    nome_paziente = f"{patient.get('nome', '')} {patient.get('cognome', '')}"
-    data_str = evaluation.get("data_compilazione", datetime.now(timezone.utc))
-    if isinstance(data_str, datetime):
-        data_str = data_str.strftime("%d/%m/%Y")
+    if is_sanmartin:
+        story.append(_make_san_martin_meta_table(evaluation, patient, scale, styles))
     else:
-        try:
-            data_str = datetime.fromisoformat(str(data_str)).strftime("%d/%m/%Y")
-        except Exception:
-            data_str = str(data_str)[:10]
-
-    meta_data = [
-        ["Paziente:", nome_paziente, "Data:", data_str],
-        ["Scala:", scala_nome, "Operatore:", evaluation.get("nome_operatore", "-")],
-        ["Intervistato/a:", evaluation.get("nome_intervistato", "-"),
-         "Anno:", str(evaluation.get("anno", "-"))],
-        ["ID Valutazione:", evaluation.get("id_valutazione", "-")[:8] + "…", "", ""],
-    ]
-
-    # Aggiungi dati clinici se disponibili
-    note_lines = []
-    if patient.get("altezza") or patient.get("peso"):
-        clinica = []
-        if patient.get("altezza"):
-            clinica.append(f"Altezza: {patient['altezza']} cm")
-        if patient.get("peso"):
-            clinica.append(f"Peso: {patient['peso']} kg")
-        meta_data.append(["Dati clinici:", " · ".join(clinica), "", ""])
-
-    if patient.get("note"):
-        raw_note = str(patient["note"])
-        note_lines = [l.strip() for l in raw_note.split('\n') if l.strip()]
-        meta_data.append(["Note:", note_lines[0][:60] + ("…" if len(note_lines[0]) > 60 else ""), "", ""])
-
-    meta_table = Table(meta_data, colWidths=[2.8*cm, 7*cm, 2.8*cm, 7*cm])
-    meta_table.setStyle(TableStyle([
-        ('FONTNAME',    (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE',    (0, 0), (-1, -1), 9),
-        ('FONTNAME',    (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTNAME',    (2, 0), (2, -1), 'Helvetica-Bold'),
-        ('TEXTCOLOR',   (0, 0), (0, -1), DARK_TEXT),
-        ('TEXTCOLOR',   (2, 0), (2, -1), DARK_TEXT),
-        ('TEXTCOLOR',   (1, 0), (1, -1), MID_GREY),
-        ('TEXTCOLOR',   (3, 0), (3, -1), MID_GREY),
-        ('VALIGN',      (0, 0), (-1, -1), 'MIDDLE'),
-        ('ROWBACKGROUNDS', (0, 0), (-1, -1), [LIGHT_GREY, white]),
-        ('TOPPADDING',  (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-    ]))
-    story.append(meta_table)
+        nome_paziente = f"{patient.get('nome', '')} {patient.get('cognome', '')}"
+        data_str = _format_pdf_date(evaluation.get("data_compilazione", datetime.now(timezone.utc)))
+        meta_data = [
+            ["Paziente:", nome_paziente, "Data:", data_str],
+            ["Scala:", scala_nome, "Operatore:", evaluation.get("nome_operatore", "-")],
+            ["Intervistato/a:", evaluation.get("nome_intervistato", "-"),
+             "Anno:", str(evaluation.get("anno", "-"))],
+            ["ID Valutazione:", evaluation.get("id_valutazione", "-")[:8] + "…", "", ""],
+        ]
+        meta_table = Table(meta_data, colWidths=[2.6*cm, 6.3*cm, 2.6*cm, 5.8*cm])
+        meta_table.setStyle(TableStyle([
+            ('FONTNAME',    (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE',    (0, 0), (-1, -1), 9),
+            ('FONTNAME',    (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME',    (2, 0), (2, -1), 'Helvetica-Bold'),
+            ('TEXTCOLOR',   (0, 0), (0, -1), DARK_TEXT),
+            ('TEXTCOLOR',   (2, 0), (2, -1), DARK_TEXT),
+            ('TEXTCOLOR',   (1, 0), (1, -1), MID_GREY),
+            ('TEXTCOLOR',   (3, 0), (3, -1), MID_GREY),
+            ('VALIGN',      (0, 0), (-1, -1), 'MIDDLE'),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [LIGHT_GREY, white]),
+            ('TOPPADDING',  (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        story.append(meta_table)
     story.append(Spacer(1, 0.4 * cm))
 
     # ── Riepilogo QV (solo San Martín) ───────────────────────────────────────
-    if has_analysis:
-        ind_qv = analysis.get("indice_qv")
-        perc = analysis.get("percentile")
-        fascia_qv = analysis.get("fascia_qv", "")
-        fascia_color = FASCIA_COLORS.get(fascia_qv, '#2D3748')
-
-        qv_data = [
-            [Paragraph("Indice di Qualità della Vita",
-                       ParagraphStyle('QvLabel', parent=styles['Normal'],
-                                      fontSize=11, textColor=white, fontName='Helvetica-Bold')),
-             Paragraph(f"{ind_qv} / 132",
-                       ParagraphStyle('QvValue', parent=styles['Normal'],
-                                      fontSize=24, textColor=white, fontName='Helvetica-Bold')),
-             Paragraph("Percentile",
-                       ParagraphStyle('QvLabel', parent=styles['Normal'],
-                                      fontSize=11, textColor=white, fontName='Helvetica-Bold')),
-             Paragraph(f"{perc}°",
-                       ParagraphStyle('QvValue', parent=styles['Normal'],
-                                      fontSize=24, textColor=HexColor('#AED581'), fontName='Helvetica-Bold')),
-             ],
-            [Paragraph(f"Fascia: {fascia_qv}",
-                       ParagraphStyle('Fascia', parent=styles['Normal'],
-                                      fontSize=13, textColor=HexColor(fascia_color),
-                                      fontName='Helvetica-Bold')),
-             "", "", ""],
-        ]
-        qv_table = Table(qv_data, colWidths=[5*cm, 3.5*cm, 3*cm, 3*cm])
-        qv_table.setStyle(TableStyle([
-            ('BACKGROUND',   (0, 0), (-1, -1), PRIMARY),
-            ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
-            ('LEFTPADDING',  (0, 0), (-1, -1), 12),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
-            ('TOPPADDING',   (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING',(0, 0), (-1, -1), 10),
-            ('SPAN',         (1, 1), (-1, 1)),
-            ('ROUNDEDCORNERS', [8]),
-        ]))
-        story.append(qv_table)
+    if is_sanmartin and analysis is not None:
+        story.append(_make_qv_summary_table(analysis, styles))
         story.append(Spacer(1, 0.5 * cm))
 
     # ── Grafico ─────────────────────────────────────────────────────────────
     story.append(Paragraph("Profilo dei Punteggi", section_header))
 
-    if has_analysis:
+    if is_sanmartin and analysis is not None:
         chart_domains = analysis.get("domini", [])
         chart_buf = _make_radar_chart(chart_domains)
-        chart_img = RLImage(chart_buf, width=14 * cm, height=14 * cm)
+        chart_img = RLImage(chart_buf, width=13.5 * cm, height=13.5 * cm)
     else:
         chart_buf = _make_bar_chart(domains)
         chart_img = RLImage(chart_buf, width=17 * cm, height=6.5 * cm)
@@ -373,7 +545,7 @@ def generate_evaluation_pdf(
     story.append(Spacer(1, 0.4 * cm))
 
     # ── Legenda fasce ───────────────────────────────────────────────────────
-    if has_analysis:
+    if is_sanmartin and analysis is not None:
         story.append(Paragraph("Fasce Interpretative (Punteggi Standard)",
                                ParagraphStyle('LegendTitle', parent=styles['Normal'],
                                               fontSize=9, textColor=MID_GREY,
@@ -415,24 +587,8 @@ def generate_evaluation_pdf(
     # ── Tabella riepilogo domìni ─────────────────────────────────────────────
     story.append(Paragraph("Riepilogo per Dominio", section_header))
 
-    if has_analysis:
-        domain_headers = ["Cod.", "Dominio", "Punteggio\nDiretto",
-                          "Punteggio\nStandard", "Percentile", "Fascia"]
-        domain_rows = [
-            [d["codice"], d["etichetta"],
-             str(d["punteggio_diretto"]),
-             str(d["punteggio_standard"]) if d["punteggio_standard"] is not None else "—",
-             f"{d['percentile_dominio']}°" if d.get("percentile_dominio") is not None else "—",
-             Paragraph(d.get("fascia") or "—",
-                       ParagraphStyle('FasciaCell', parent=styles['Normal'],
-                                      fontSize=8, textColor=HexColor(FASCIA_COLORS.get(d.get("fascia"), '#2D3748')),
-                                      fontName='Helvetica-Bold', alignment=TA_CENTER))]
-            for d in analysis.get("domini", [])
-        ]
-        col_widths = [1.2*cm, 3.5*cm, 2.2*cm, 2.2*cm, 2*cm, 2.5*cm]
-        style_extras = [
-            ('ALIGN', (2, 0), (4, -1), 'CENTER'),
-        ]
+    if is_sanmartin and analysis is not None:
+        domain_table = _make_san_martin_domain_table(analysis)
     else:
         domain_headers = ["Cod.", "Dominio", "Punteggio Totale", "N° Domande"]
         domain_rows = [
@@ -444,9 +600,9 @@ def generate_evaluation_pdf(
             ('ALIGN', (2, 0), (3, -1), 'CENTER'),
         ]
 
-    domain_table = _make_table(
-        domain_headers, domain_rows, col_widths, PRIMARY, style_extras
-    )
+        domain_table = _make_table(
+            domain_headers, domain_rows, col_widths, PRIMARY, style_extras
+        )
     story.append(domain_table)
     story.append(Spacer(1, 0.5 * cm))
 

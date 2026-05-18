@@ -44,8 +44,25 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     Color(0xFFE57373), Color(0xFF4FC3F7), Color(0xFFAED581), Color(0xFFFF8A65),
   ];
 
+  bool get _isSanMartinScale {
+    final scaleName = (_analysis?.scalaNome ?? widget.scale.nome).toLowerCase();
+    final normalized = scaleName.replaceAll(' ', '').replaceAll('-', '');
+    return normalized.contains('sanmartin');
+  }
+
   bool get _hasStandardProfile =>
       _analysis?.domini.any((domain) => domain.punteggioStandard != null) ?? false;
+
+  bool get _hasQvSummary =>
+      _analysis != null &&
+      (_analysis!.indiceQv != null ||
+          _analysis!.percentile != null ||
+          (_analysis!.fasciaQv?.isNotEmpty ?? false));
+
+  bool get _showSanMartinProfile =>
+      _analysis != null &&
+      _analysis!.domini.isNotEmpty &&
+      (_isSanMartinScale || _hasQvSummary || _hasStandardProfile);
 
   @override
   void initState() {
@@ -260,7 +277,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
             children: [
               _buildHistoryCard(),
               const SizedBox(height: 20),
-              if (_hasStandardProfile) ...[
+              if (_showSanMartinProfile) ...[
                 _buildQvSummaryCard(),
                 const SizedBox(height: 20),
               ],
@@ -548,7 +565,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
   }
   Widget _buildChartCard() {
     final hasAnalysis = _analysis != null && _analysis!.domini.isNotEmpty;
-    final useRadar = hasAnalysis && _hasStandardProfile;
+    final useRadar = hasAnalysis && _showSanMartinProfile;
 
     return Card(
       child: Padding(
@@ -838,7 +855,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
             const Text('Riepilogo per Dominio',
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
             const SizedBox(height: 16),
-            if (!_hasStandardProfile)
+            if (!_showSanMartinProfile)
               const Padding(
                 padding: EdgeInsets.only(bottom: 12),
                 child: Text(
@@ -868,7 +885,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
   }
 
   List<DataRow> _buildDomainRows() {
-    if (_hasStandardProfile && _analysis != null) {
+    if (_showSanMartinProfile && _analysis != null) {
       return _analysis!.domini.asMap().entries.map((entry) {
         final index = entry.key;
         final domain = entry.value;

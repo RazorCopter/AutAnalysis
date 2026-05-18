@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -30,6 +31,7 @@ class _WizardScreenState extends State<WizardScreen>
   final ApiService _apiService = ApiService();
   final PageController _pageController = PageController();
   final TextEditingController _noteController = TextEditingController();
+  final FocusNode _focusNode = FocusNode(debugLabel: 'wizard_keyboard_focus');
 
   bool _isLoading = true;
   List<_WizardItem> _questions = [];
@@ -51,10 +53,12 @@ class _WizardScreenState extends State<WizardScreen>
     final now = DateTime.now();
     _dataController.text = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     _loadScale();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _requestKeyboardFocus());
   }
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _noteController.dispose();
     _pageController.dispose();
     _dataController.dispose();
@@ -67,6 +71,93 @@ class _WizardScreenState extends State<WizardScreen>
     if (_questions.isEmpty) return '';
     final q = _questions[_currentIndex].domanda;
     return q.codice ?? q.idDomanda;
+  }
+
+  void _requestKeyboardFocus() {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_focusNode.hasFocus) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
+
+  bool _isTypingInTextField() {
+    final focusedChild = FocusManager.instance.primaryFocus;
+    final widget = focusedChild?.context?.widget;
+    return widget is EditableText;
+  }
+
+  void _selectOptionByHotkey(int optionIndex) {
+    if (_questions.isEmpty || _currentIndex >= _questions.length) return;
+
+    final options = _questions[_currentIndex].domanda.opzioni;
+    if (optionIndex < 0 || optionIndex >= options.length) return;
+
+    final selectedOption = options[optionIndex];
+    setState(() {
+      _answers[_currentKey] = selectedOption.punteggio;
+    });
+    _requestKeyboardFocus();
+  }
+
+  void _goForward() {
+    if (!_answers.containsKey(_currentKey)) return;
+
+    final isLast = _currentIndex == _questions.length - 1;
+    if (isLast) {
+      _saveEvaluation();
+      return;
+    }
+    _navigate(_currentIndex + 1);
+  }
+
+  void _goBack() {
+    if (_currentIndex <= 0) return;
+    _navigate(_currentIndex - 1);
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (_isLoading || !_preliminaryDone || _questions.isEmpty) {
+      return KeyEventResult.ignored;
+    }
+    if (_isTypingInTextField()) {
+      return KeyEventResult.ignored;
+    }
+
+    final optionHotkeys = <LogicalKeyboardKey, int>{
+      LogicalKeyboardKey.digit1: 0,
+      LogicalKeyboardKey.numpad1: 0,
+      LogicalKeyboardKey.digit2: 1,
+      LogicalKeyboardKey.numpad2: 1,
+      LogicalKeyboardKey.digit3: 2,
+      LogicalKeyboardKey.numpad3: 2,
+      LogicalKeyboardKey.digit4: 3,
+      LogicalKeyboardKey.numpad4: 3,
+    };
+
+    final optionIndex = optionHotkeys[event.logicalKey];
+    if (optionIndex != null) {
+      _selectOptionByHotkey(optionIndex);
+      return KeyEventResult.handled;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.enter ||
+        event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+      if (_answers.containsKey(_currentKey)) {
+        _goForward();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _goBack();
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   Future<void> _loadScale() async {
@@ -84,6 +175,7 @@ class _WizardScreenState extends State<WizardScreen>
         _questions = flat;
         _isLoading = false;
       });
+      _requestKeyboardFocus();
     } else {
       setState(() => _isLoading = false);
       if (mounted) {
@@ -117,6 +209,7 @@ class _WizardScreenState extends State<WizardScreen>
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOut,
     );
+    _requestKeyboardFocus();
   }
 
   Future<void> _saveEvaluation() async {
@@ -151,6 +244,7 @@ class _WizardScreenState extends State<WizardScreen>
 
     final success = await _apiService.saveEvaluation(evaluation);
     setState(() => _isLoading = false);
+    _requestKeyboardFocus();
 
     if (success && mounted) {
       await showDialog(
@@ -207,22 +301,32 @@ class _WizardScreenState extends State<WizardScreen>
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        body: Container(
-          decoration: _gradientDecoration(),
-          child: const Center(child: CircularProgressIndicator()),
+        body: Focus(
+          focusNode: _focusNode,
+          autofocus: true,
+          onKeyEvent: _handleKeyEvent,
+          child: Container(
+            decoration: _gradientDecoration(),
+            child: const Center(child: CircularProgressIndicator()),
+          ),
         ),
       );
     }
 
     if (!_preliminaryDone) {
       return Scaffold(
-        body: Container(
-          decoration: _gradientDecoration(),
-          child: SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: _buildPreliminaryCard(),
+        body: Focus(
+          focusNode: _focusNode,
+          autofocus: true,
+          onKeyEvent: _handleKeyEvent,
+          child: Container(
+            decoration: _gradientDecoration(),
+            child: SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: _buildPreliminaryCard(),
+                ),
               ),
             ),
           ),
@@ -232,11 +336,16 @@ class _WizardScreenState extends State<WizardScreen>
 
     if (_questions.isEmpty) {
       return Scaffold(
-        body: Container(
-          decoration: _gradientDecoration(),
-          child: const Center(
-            child: Text('Nessuna domanda disponibile per questa scala',
-                style: TextStyle(fontSize: 18, color: AppTheme.textSecondary)),
+        body: Focus(
+          focusNode: _focusNode,
+          autofocus: true,
+          onKeyEvent: _handleKeyEvent,
+          child: Container(
+            decoration: _gradientDecoration(),
+            child: const Center(
+              child: Text('Nessuna domanda disponibile per questa scala',
+                  style: TextStyle(fontSize: 18, color: AppTheme.textSecondary)),
+            ),
           ),
         ),
       );
@@ -248,52 +357,57 @@ class _WizardScreenState extends State<WizardScreen>
     final totalQ = _questions.length;
 
     return Scaffold(
-      body: Container(
-        decoration: _gradientDecoration(),
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isTablet = constraints.maxWidth > 650;
-              final maxW = isTablet ? 720.0 : double.infinity;
-              final hPad = isTablet ? 0.0 : 0.0;
+      body: Focus(
+        focusNode: _focusNode,
+        autofocus: true,
+        onKeyEvent: _handleKeyEvent,
+        child: Container(
+          decoration: _gradientDecoration(),
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isTablet = constraints.maxWidth > 650;
+                final maxW = isTablet ? 720.0 : double.infinity;
+                final hPad = isTablet ? 0.0 : 0.0;
 
-              return Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxW),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: hPad),
-                    child: Column(
-                      children: [
-                        _buildHeader(currentQ, isTablet, totalQ),
-                        _buildProgressBar(totalQ),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isTablet ? 32 : 20,
-                              vertical: 20,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _buildQuestionCard(currentQ, isTablet),
-                                const SizedBox(height: 12),
-                                _buildQuestionNote(currentQ.domanda, isTablet),
-                                const SizedBox(height: 8),
-                                _buildOptionsList(currentQ, isTablet),
-                                const SizedBox(height: 12),
-                                _buildNoteSection(currentQ, isTablet),
-                                const SizedBox(height: 24),
-                              ],
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxW),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: hPad),
+                      child: Column(
+                        children: [
+                          _buildHeader(currentQ, isTablet, totalQ),
+                          _buildProgressBar(totalQ),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isTablet ? 32 : 20,
+                                vertical: 20,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _buildQuestionCard(currentQ, isTablet),
+                                  const SizedBox(height: 12),
+                                  _buildQuestionNote(currentQ.domanda, isTablet),
+                                  const SizedBox(height: 8),
+                                  _buildOptionsList(currentQ, isTablet),
+                                  const SizedBox(height: 12),
+                                  _buildNoteSection(currentQ, isTablet),
+                                  const SizedBox(height: 24),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        _buildNavBar(hasAnswered, isLast, isTablet),
-                      ],
+                          _buildNavBar(hasAnswered, isLast, isTablet),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -373,6 +487,7 @@ class _WizardScreenState extends State<WizardScreen>
                     if (picked != null) {
                       _dataController.text = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
                     }
+                    _requestKeyboardFocus();
                   },
                 ),
                 const SizedBox(height: 16),
@@ -419,7 +534,10 @@ class _WizardScreenState extends State<WizardScreen>
                 SizedBox(
                   height: 52,
                   child: FilledButton.icon(
-                    onPressed: () => setState(() => _preliminaryDone = true),
+                    onPressed: () {
+                      setState(() => _preliminaryDone = true);
+                      _requestKeyboardFocus();
+                    },
                     icon: const Icon(Icons.play_circle_outline, size: 22),
                     label: const Text(
                       'Inizia Compilazione',
@@ -620,7 +738,10 @@ class _WizardScreenState extends State<WizardScreen>
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: GestureDetector(
-        onTap: () => setState(() => _answers[_currentKey] = opt.punteggio),
+        onTap: () {
+          setState(() => _answers[_currentKey] = opt.punteggio);
+          _requestKeyboardFocus();
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOut,
@@ -731,7 +852,10 @@ class _WizardScreenState extends State<WizardScreen>
         content: Text(opt.descrizione ?? ''),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _requestKeyboardFocus();
+            },
             child: const Text('Chiudi'),
           ),
         ],
@@ -746,7 +870,10 @@ class _WizardScreenState extends State<WizardScreen>
       children: [
         // Toggle button
         GestureDetector(
-          onTap: () => setState(() => _noteVisible = !_noteVisible),
+          onTap: () {
+            setState(() => _noteVisible = !_noteVisible);
+            _requestKeyboardFocus();
+          },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
@@ -854,9 +981,7 @@ class _WizardScreenState extends State<WizardScreen>
                 child: _glassIconButton(
                   icon: Icons.arrow_back_ios_new_rounded,
                   label: 'Indietro',
-                  onTap: _currentIndex > 0
-                      ? () => _navigate(_currentIndex - 1)
-                      : null,
+                  onTap: _currentIndex > 0 ? _goBack : null,
                 ),
               ),
               // Avanti / Salva
@@ -865,13 +990,7 @@ class _WizardScreenState extends State<WizardScreen>
                 scale: hasAnswered ? 1.0 : 0.95,
                 child: FilledButton.icon(
                   onPressed: hasAnswered
-                      ? () {
-                          if (isLast) {
-                            _saveEvaluation();
-                          } else {
-                            _navigate(_currentIndex + 1);
-                          }
-                        }
+                      ? _goForward
                       : null,
                   icon: Icon(isLast
                       ? Icons.save_alt_rounded
