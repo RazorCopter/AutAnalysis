@@ -755,7 +755,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                           tickBorderData: const BorderSide(color: Color(0xFFDDE7F8), width: 0.8),
                           gridBorderData: const BorderSide(color: Color(0xFFDDE7F8), width: 0.8),
                           radarBorderData: const BorderSide(color: Color(0xFF90A4AE), width: 1.2),
-                          radarBackgroundColor: const Color(0xFFF8FBFF),
+                          radarBackgroundColor: const Color(0xFFFFFFFF),
                           titlePositionPercentageOffset: 0,
                           titleTextStyle: const TextStyle(color: Colors.transparent),
                           getTitle: (index, _) => const RadarChartTitle(text: ''),
@@ -774,8 +774,8 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                                   .map((value) => RadarEntry(value: value))
                                   .toList(),
                               borderColor: const Color(0xFF1A237E),
-                              borderWidth: 2.6,
-                              fillColor: const Color(0xFF1A237E).withValues(alpha: 0.14),
+                              borderWidth: 3.0,
+                              fillColor: const Color(0xFF1A237E).withValues(alpha: 0.15),
                               entryRadius: 4.5,
                             ),
                           ],
@@ -786,8 +786,9 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                           size: Size(chartSize, chartSize),
                           painter: _DashedRadarMeanPainter(
                             axisCount: domains.length,
-                            color: const Color(0xFFD84343),
+                            color: const Color(0xFFE57373),
                             levelFraction: 0.5,
+                            patientValues: patientValues,
                           ),
                         ),
                       ),
@@ -808,9 +809,14 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                   label: 'Profilo paziente',
                 ),
                 _LegendItem(
-                  color: Color(0xFFD84343),
+                  color: Color(0xFFE57373),
                   label: 'Media normativa (10)',
                   dashed: true,
+                ),
+                _LegendItem(
+                  color: Color(0x1C4CAF50),
+                  label: 'Range Medio (8–12)',
+                  isSquare: true,
                 ),
               ],
             ),
@@ -1308,11 +1314,13 @@ class _LegendItem extends StatelessWidget {
   final Color color;
   final String label;
   final bool dashed;
+  final bool isSquare;
 
   const _LegendItem({
     required this.color,
     required this.label,
     this.dashed = false,
+    this.isSquare = false,
   });
 
   @override
@@ -1322,7 +1330,11 @@ class _LegendItem extends StatelessWidget {
       children: [
         CustomPaint(
           size: const Size(24, 12),
-          painter: _LegendLinePainter(color: color, dashed: dashed),
+          painter: _LegendLinePainter(
+            color: color, 
+            dashed: dashed, 
+            isSquare: isSquare,
+          ),
         ),
         const SizedBox(width: 8),
         Text(
@@ -1341,14 +1353,30 @@ class _LegendItem extends StatelessWidget {
 class _LegendLinePainter extends CustomPainter {
   final Color color;
   final bool dashed;
+  final bool isSquare;
 
   const _LegendLinePainter({
     required this.color,
     required this.dashed,
+    this.isSquare = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (isSquare) {
+      final paint = Paint()
+        ..color = color
+        ..style = PaintingStyle.fill;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(4, 0, size.width - 8, size.height),
+          const Radius.circular(2),
+        ),
+        paint,
+      );
+      return;
+    }
+
     final paint = Paint()
       ..color = color
       ..strokeWidth = 2
@@ -1372,7 +1400,9 @@ class _LegendLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _LegendLinePainter oldDelegate) {
-    return oldDelegate.color != color || oldDelegate.dashed != dashed;
+    return oldDelegate.color != color || 
+        oldDelegate.dashed != dashed || 
+        oldDelegate.isSquare != isSquare;
   }
 }
 
@@ -1380,11 +1410,13 @@ class _DashedRadarMeanPainter extends CustomPainter {
   final int axisCount;
   final Color color;
   final double levelFraction;
+  final List<double>? patientValues;
 
   const _DashedRadarMeanPainter({
     required this.axisCount,
     required this.color,
     required this.levelFraction,
+    this.patientValues,
   });
 
   static void drawDashedSegment(
@@ -1413,12 +1445,47 @@ class _DashedRadarMeanPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (axisCount < 3) return;
 
+    final center = Offset(size.width / 2, size.height / 2);
+
+    // 1. Disegna la fascia normativa verde traslucida tra punteggio 8 e 12 (frazioni 0.4 e 0.6)
+    final pathOuter = Path();
+    final pathInner = Path();
+    final rOuter = (math.min(size.width, size.height) / 2) * 0.92 * 0.6; // Score 12
+    final rInner = (math.min(size.width, size.height) / 2) * 0.92 * 0.4; // Score 8
+
+    for (var index = 0; index < axisCount; index++) {
+      final angle = (-math.pi / 2) + (2 * math.pi * index / axisCount);
+      final pOuter = Offset(
+        center.dx + (rOuter * math.cos(angle)),
+        center.dy + (rOuter * math.sin(angle)),
+      );
+      final pInner = Offset(
+        center.dx + (rInner * math.cos(angle)),
+        center.dy + (rInner * math.sin(angle)),
+      );
+      if (index == 0) {
+        pathOuter.moveTo(pOuter.dx, pOuter.dy);
+        pathInner.moveTo(pInner.dx, pInner.dy);
+      } else {
+        pathOuter.lineTo(pOuter.dx, pOuter.dy);
+        pathInner.lineTo(pInner.dx, pInner.dy);
+      }
+    }
+    pathOuter.close();
+    pathInner.close();
+
+    final bandPaint = Paint()
+      ..color = const Color(0xFF4CAF50).withValues(alpha: 0.11)
+      ..style = PaintingStyle.fill;
+    final combinedPath = Path.combine(PathOperation.difference, pathOuter, pathInner);
+    canvas.drawPath(combinedPath, bandPaint);
+
+    // 2. Disegna la linea media normativa tratteggiata (Score 10)
     final paint = Paint()
       ..color = color
       ..strokeWidth = 1.8
       ..style = PaintingStyle.stroke;
 
-    final center = Offset(size.width / 2, size.height / 2);
     final radius = (math.min(size.width, size.height) / 2) * 0.92 * levelFraction;
     final points = List<Offset>.generate(axisCount, (index) {
       final angle = (-math.pi / 2) + (2 * math.pi * index / axisCount);
@@ -1433,13 +1500,77 @@ class _DashedRadarMeanPainter extends CustomPainter {
       final end = points[(index + 1) % points.length];
       drawDashedSegment(canvas, start, end, paint);
     }
+
+    // 3. Disegna i badge numerici per ogni punto del profilo del paziente
+    if (patientValues != null && patientValues!.length == axisCount) {
+      for (var index = 0; index < axisCount; index++) {
+        final score = patientValues![index];
+        final valFraction = score / 20.0;
+        final valRadius = (math.min(size.width, size.height) / 2) * 0.92 * valFraction;
+        final angle = (-math.pi / 2) + (2 * math.pi * index / axisCount);
+
+        // Offset per non sovrapporsi al dot di FL Chart
+        final double offsetVal;
+        if (score < 3) {
+          offsetVal = 13.0;
+        } else if (score > 18) {
+          offsetVal = -13.0;
+        } else {
+          offsetVal = 11.0;
+        }
+
+        final pText = Offset(
+          center.dx + ((valRadius + offsetVal) * math.cos(angle)),
+          center.dy + ((valRadius + offsetVal) * math.sin(angle)),
+        );
+
+        final tp = TextPainter(
+          text: TextSpan(
+            text: score.toInt().toString(),
+            style: const TextStyle(
+              color: Color(0xFF1A237E),
+              fontSize: 8.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        tp.layout();
+
+        final rect = Rect.fromCenter(
+          center: pText,
+          width: tp.width + 8,
+          height: tp.height + 4,
+        );
+        final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(3));
+
+        // Background badge
+        canvas.drawRRect(
+          rrect,
+          Paint()
+            ..color = const Color(0xFFF5F7FA)
+            ..style = PaintingStyle.fill,
+        );
+        // Bordo badge
+        canvas.drawRRect(
+          rrect,
+          Paint()
+            ..color = const Color(0xFFDDE7F8)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.8,
+        );
+        // Testo
+        tp.paint(canvas, Offset(pText.dx - tp.width / 2, pText.dy - tp.height / 2));
+      }
+    }
   }
 
   @override
   bool shouldRepaint(covariant _DashedRadarMeanPainter oldDelegate) {
     return oldDelegate.axisCount != axisCount ||
         oldDelegate.color != color ||
-        oldDelegate.levelFraction != levelFraction;
+        oldDelegate.levelFraction != levelFraction ||
+        oldDelegate.patientValues != patientValues;
   }
 }
 
