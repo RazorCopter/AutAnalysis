@@ -983,19 +983,42 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
         ),
       ),
       ...domainsList.map((d) {
+        final code = (d is DomainAnalysis) ? d.codice : (d as DomainScore).codice;
         final labelText = (d is DomainAnalysis) ? d.etichetta : (d as DomainScore).etichetta;
+        
+        // Abbreviazioni per far rientrare la tabella nello schermo
+        String displayLabel = labelText;
+        final upperCode = code.toUpperCase();
+        if (upperCode == 'AU') {
+          displayLabel = 'Autodeter.';
+        } else if (upperCode == 'BE') {
+          displayLabel = 'Ben. Emotivo';
+        } else if (upperCode == 'BF') {
+          displayLabel = 'Ben. Fisico';
+        } else if (upperCode == 'BM') {
+          displayLabel = 'Ben. Materiale';
+        } else if (upperCode == 'DI') {
+          displayLabel = 'Diritti';
+        } else if (upperCode == 'SP') {
+          displayLabel = 'Svilup. Pers.';
+        } else if (upperCode == 'IS') {
+          displayLabel = 'Inclus. Soc.';
+        } else if (upperCode == 'RI') {
+          displayLabel = 'Relaz. Interp.';
+        }
+
         return DataColumn(
           label: SizedBox(
-            width: 115,
+            width: 80,
             child: Text(
-              labelText,
+              displayLabel,
               softWrap: true,
-              maxLines: 3,
+              maxLines: 2,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppTheme.primaryColor,
                 fontSize: 12,
-                height: 1.15,
+                height: 1.1,
               ),
             ),
           ),
@@ -1109,7 +1132,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                       minWidth: constraints.maxWidth,
                     ),
                     child: DataTable(
-                      columnSpacing: 24.0,
+                      columnSpacing: 14.0,
                       horizontalMargin: 12.0,
                       headingRowColor: WidgetStatePropertyAll(
                         AppTheme.primaryColor.withValues(alpha: 0.08),
