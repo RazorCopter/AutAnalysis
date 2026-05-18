@@ -761,7 +761,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                     children: [
                       RadarChart(
                         RadarChartData(
-                          radarShape: RadarShape.circle,
+                          radarShape: RadarShape.polygon,
                           tickCount: 4,
                           ticksTextStyle: const TextStyle(
                             fontSize: 10,

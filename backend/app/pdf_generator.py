@@ -114,12 +114,25 @@ def _make_radar_chart(
         zorder=1
     )
 
-    # 2. Linee griglia concentriche estremamente sottili e minimali
+    # 2. Linee griglia concentriche poligonali (ottagoni) estremamente sottili e minimali
     ax.set_ylim(score_min, score_max)
     ax.set_yticks([4, 8, 12, 16, 20])
     ax.set_yticklabels(['4', '8', '12', '16', '20'], fontsize=8.5, color='#94A3B8')
-    ax.yaxis.grid(True, color='#CBD5E1', linestyle='-', linewidth=0.8, zorder=2)
+    ax.yaxis.grid(False) # Disattiva la griglia circolare di default
     ax.xaxis.grid(True, color='#E2E8F0', linestyle='-', linewidth=0.8, zorder=2)
+
+    # Disegna i cerchi concentrici come poligoni regolari (ottagoni)
+    grid_levels = [4, 8, 12, 16, 20]
+    for level in grid_levels:
+        level_vals = [level] * (n + 1)
+        ax.plot(
+            angles, 
+            level_vals, 
+            color='#CBD5E1', 
+            linestyle='-', 
+            linewidth=0.8, 
+            zorder=2
+        )
 
     # 3. Disegna il profilo del paziente (Linea spessa arancione + riempimento traslucido)
     ax.fill(angles, patient_vals, color='#FF7043', alpha=0.28, zorder=3)
