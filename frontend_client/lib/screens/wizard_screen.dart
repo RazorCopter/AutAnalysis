@@ -34,6 +34,7 @@ class _WizardScreenState extends State<WizardScreen>
   final FocusNode _focusNode = FocusNode(debugLabel: 'wizard_keyboard_focus');
 
   bool _isLoading = true;
+  String? _scaleNome;
   List<_WizardItem> _questions = [];
   Map<String, int> _answers = {};   // codice_domanda -> punteggio
   Map<String, String> _notes = {};  // codice_domanda -> nota
@@ -228,6 +229,7 @@ class _WizardScreenState extends State<WizardScreen>
         }
       }
       setState(() {
+        _scaleNome = scale.nome;
         _questions = flat;
         _isLoading = false;
       });
@@ -286,7 +288,10 @@ class _WizardScreenState extends State<WizardScreen>
     Map<String, dynamic>? demographicsData;
     final isSanMartin = widget.scaleId.toLowerCase().contains('martin') ||
         widget.scaleId.toLowerCase().contains('san') ||
-        widget.scaleId.toLowerCase().contains('sanmartin');
+        widget.scaleId.toLowerCase().contains('sanmartin') ||
+        (_scaleNome ?? '').toLowerCase().contains('martin') ||
+        (_scaleNome ?? '').toLowerCase().contains('san') ||
+        (_scaleNome ?? '').toLowerCase().contains('sanmartin');
     if (isSanMartin) {
       demographicsData = {
         'persona': {
@@ -441,7 +446,10 @@ class _WizardScreenState extends State<WizardScreen>
 
     final isSanMartin = widget.scaleId.toLowerCase().contains('martin') ||
         widget.scaleId.toLowerCase().contains('san') ||
-        widget.scaleId.toLowerCase().contains('sanmartin');
+        widget.scaleId.toLowerCase().contains('sanmartin') ||
+        (_scaleNome ?? '').toLowerCase().contains('martin') ||
+        (_scaleNome ?? '').toLowerCase().contains('san') ||
+        (_scaleNome ?? '').toLowerCase().contains('sanmartin');
 
     if (isSanMartin && !_demographicsDone) {
       return Scaffold(
