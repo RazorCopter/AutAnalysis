@@ -90,7 +90,7 @@ def _make_radar_chart(
 
     fig, ax = plt.subplots(figsize=(7.5, 7.5), subplot_kw=dict(polar=True), dpi=150)
     fig.patch.set_facecolor('#FFFFFF')
-    ax.set_facecolor('#FFFFFF')
+    ax.set_facecolor('#F8FAFC')
 
     # Sposta l'asse a 90 gradi (in alto) e inverti la direzione
     ax.set_theta_offset(np.pi / 2)
@@ -117,26 +117,26 @@ def _make_radar_chart(
     # 2. Linee griglia concentriche estremamente sottili e minimali
     ax.set_ylim(score_min, score_max)
     ax.set_yticks([4, 8, 12, 16, 20])
-    ax.set_yticklabels(['4', '8', '12', '16', '20'], fontsize=8.5, color='#90A4AE')
-    ax.yaxis.grid(True, color='#ECEFF1', linestyle='-', linewidth=0.8, zorder=2)
-    ax.xaxis.grid(True, color='#ECEFF1', linestyle='-', linewidth=0.8, zorder=2)
+    ax.set_yticklabels(['4', '8', '12', '16', '20'], fontsize=8.5, color='#94A3B8')
+    ax.yaxis.grid(True, color='#CBD5E1', linestyle='-', linewidth=0.8, zorder=2)
+    ax.xaxis.grid(True, color='#E2E8F0', linestyle='-', linewidth=0.8, zorder=2)
 
-    # 3. Disegna il profilo del paziente (Linea spessa navy + riempimento traslucido)
-    ax.fill(angles, patient_vals, color='#1A237E', alpha=0.15, zorder=3)
+    # 3. Disegna il profilo del paziente (Linea spessa arancione + riempimento traslucido)
+    ax.fill(angles, patient_vals, color='#FF7043', alpha=0.28, zorder=3)
     ax.plot(
         angles, patient_vals, 
         'o-', 
-        linewidth=3.0, 
-        markersize=7.5,
-        color='#1A237E', 
-        markerfacecolor='#FFFFFF', 
-        markeredgewidth=2.5,
-        markeredgecolor='#1A237E', 
+        linewidth=3.5, 
+        markersize=8.0,
+        color='#FF7043', 
+        markerfacecolor='#FF7043', 
+        markeredgewidth=2.0,
+        markeredgecolor='#FFFFFF', 
         label='Profilo Paziente', 
         zorder=5
     )
 
-    # 4. Disegna la linea di media normativa tratteggiata corallo
+    # 4. Disegna la linea di media normativa tratteggiata corallo/rosso
     ax.plot(
         angles, mean_vals, 
         '--', 
@@ -151,7 +151,7 @@ def _make_radar_chart(
     # Questo rende il grafico super leggibile a colpo d'occhio
     for i, (angle, val) in enumerate(zip(angles[:-1], patient_values)):
         # Calcola leggermente all'esterno la posizione del testo
-        r_pos = val + 0.9 if val < 19 else val - 1.2
+        r_pos = val + 1.1 if val < 19 else val - 1.4
         # Allinea in base all'angolo per evitare sovrapposizioni con l'asse
         ha = 'center'
         va = 'center'
@@ -167,12 +167,12 @@ def _make_radar_chart(
         ax.text(
             angle, r_pos, 
             str(val), 
-            color='#1A237E', 
+            color='#FFFFFF', 
             fontsize=8.5, 
             fontweight='bold',
             ha=ha, 
             va=va,
-            bbox=dict(boxstyle='round,pad=0.2', facecolor='#F5F7FA', edgecolor='#DDE7F8', alpha=0.95),
+            bbox=dict(boxstyle='round,pad=0.25', facecolor='#FF7043', edgecolor='none', alpha=0.95),
             zorder=6
         )
 

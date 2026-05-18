@@ -528,7 +528,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
         child: Wrap(
           spacing: 28,
           runSpacing: 20,
-          crossAxisAlignment: WrapCrossAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.start,
           children: [
             _summaryMetric(
               title: 'Indice Qualità della Vita',
@@ -549,19 +549,34 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
               value: a.sommaPunteggiStandard?.toString() ?? '—',
               hint: 'Somma degli 8 domini',
               color: const Color(0xFF90CAF9),
+              large: true,
             ),
             if (a.fasciaQv != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Fascia interpretativa',
-                    style: TextStyle(fontSize: 13, color: Colors.white70),
-                  ),
-                  const SizedBox(height: 6),
-                  _fasciaBadge(a.fasciaQv!),
-                ],
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 180),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Fascia interpretativa',
+                      style: TextStyle(fontSize: 14, color: Colors.white70),
+                    ),
+                    const SizedBox(height: 6),
+                    SizedBox(
+                      height: 44, // Allinea l'altezza del badge con il testo grande delle altre metriche
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _fasciaBadge(a.fasciaQv!),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Classificazione clinica',
+                      style: TextStyle(fontSize: 12, color: Colors.white54),
+                    ),
+                  ],
+                ),
               ),
           ],
         ),
@@ -746,16 +761,17 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                     children: [
                       RadarChart(
                         RadarChartData(
-                          radarShape: RadarShape.polygon,
+                          radarShape: RadarShape.circle,
                           tickCount: 4,
                           ticksTextStyle: const TextStyle(
                             fontSize: 10,
-                            color: Color(0xFF7B8794),
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.bold,
                           ),
-                          tickBorderData: const BorderSide(color: Color(0xFFDDE7F8), width: 0.8),
-                          gridBorderData: const BorderSide(color: Color(0xFFDDE7F8), width: 0.8),
-                          radarBorderData: const BorderSide(color: Color(0xFF90A4AE), width: 1.2),
-                          radarBackgroundColor: const Color(0xFFFFFFFF),
+                          tickBorderData: const BorderSide(color: Color(0xFFE2E8F0), width: 0.8),
+                          gridBorderData: const BorderSide(color: Color(0xFFCBD5E1), width: 1.0),
+                          radarBorderData: const BorderSide(color: Color(0xFF94A3B8), width: 1.5),
+                          radarBackgroundColor: const Color(0xFFF8FAFC),
                           titlePositionPercentageOffset: 0,
                           titleTextStyle: const TextStyle(color: Colors.transparent),
                           getTitle: (index, _) => const RadarChartTitle(text: ''),
@@ -773,10 +789,10 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                               dataEntries: patientValues
                                   .map((value) => RadarEntry(value: value))
                                   .toList(),
-                              borderColor: const Color(0xFF1A237E),
-                              borderWidth: 3.0,
-                              fillColor: const Color(0xFF1A237E).withValues(alpha: 0.15),
-                              entryRadius: 4.5,
+                              borderColor: const Color(0xFFF97316), // Arancione/Corallo vibrante infografica
+                              borderWidth: 4.0,
+                              fillColor: const Color(0xFFF97316).withValues(alpha: 0.28),
+                              entryRadius: 6.5,
                             ),
                           ],
                         ),
@@ -805,7 +821,7 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
               alignment: WrapAlignment.center,
               children: const [
                 _LegendItem(
-                  color: Color(0xFF1A237E),
+                  color: Color(0xFFF97316),
                   label: 'Profilo paziente',
                 ),
                 _LegendItem(
