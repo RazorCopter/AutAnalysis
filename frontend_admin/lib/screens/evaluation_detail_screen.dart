@@ -962,6 +962,105 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
       );
     }
 
+    final List<dynamic> domainsList = (_shouldUseSanMartinUi && _analysis != null)
+        ? _analysis!.domini
+        : (_eval?.domini ?? <DomainScore>[]);
+
+    final List<DataColumn> columns = [
+      const DataColumn(
+        label: Text(
+          'Metrica',
+          style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+        ),
+      ),
+      ...domainsList.map((d) => DataColumn(
+        label: Text(
+          d.etichetta,
+          style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+        ),
+      )),
+    ];
+
+    final List<DataRow> rows = [];
+
+    // 1. Punteggio Grezzo
+    rows.add(DataRow(
+      cells: [
+        const DataCell(Text('Punteggio Grezzo', style: TextStyle(fontWeight: FontWeight.bold))),
+        ...domainsList.map((d) {
+          final val = (d is DomainAnalysis) ? d.punteggioDiretto : (d as DomainScore).punteggio;
+          return DataCell(Text(val.toString(), style: const TextStyle(fontSize: 13)));
+        }),
+      ],
+    ));
+
+    // Se abbiamo i dati della Scala San Martín (con conversione)
+    if (_shouldUseSanMartinUi && _analysis != null) {
+      // 2. Punteggio Standard
+      rows.add(DataRow(
+        cells: [
+          const DataCell(Text('Punteggio Standard', style: TextStyle(fontWeight: FontWeight.bold))),
+          ...domainsList.map((d) {
+            final val = (d as DomainAnalysis).punteggioStandard;
+            final fasciaColor = _getFasciaColor(d.fascia);
+            return DataCell(_standardScoreBadge(val, fasciaColor));
+          }),
+        ],
+      ));
+
+      // 3. Percentile
+      rows.add(DataRow(
+        cells: [
+          const DataCell(Text('Percentile', style: TextStyle(fontWeight: FontWeight.bold))),
+          ...domainsList.map((d) {
+            final val = (d as DomainAnalysis).percentileDominio;
+            final fasciaColor = _getFasciaColor(d.fascia);
+            final valText = val != null ? '$val°' : '—';
+            return DataCell(Text(
+              valText,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: val != null ? fasciaColor : AppTheme.textSecondary,
+              ),
+            ));
+          }),
+        ],
+      ));
+
+      // 4. Fascia
+      rows.add(DataRow(
+        cells: [
+          const DataCell(Text('Fascia', style: TextStyle(fontWeight: FontWeight.bold))),
+          ...domainsList.map((d) {
+            final val = (d as DomainAnalysis).fascia;
+            final fasciaColor = _getFasciaColor(d.fascia);
+            return DataCell(_fasciaBadge(val, fasciaColor));
+          }),
+        ],
+      ));
+    } else {
+      // Altrimenti aggiungiamo righe vuote per compatibilità
+      rows.add(DataRow(
+        cells: [
+          const DataCell(Text('Punteggio Standard', style: TextStyle(fontWeight: FontWeight.bold))),
+          ...domainsList.map((_) => const DataCell(Text('—', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)))),
+        ],
+      ));
+      rows.add(DataRow(
+        cells: [
+          const DataCell(Text('Percentile', style: TextStyle(fontWeight: FontWeight.bold))),
+          ...domainsList.map((_) => const DataCell(Text('—', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)))),
+        ],
+      ));
+      rows.add(DataRow(
+        cells: [
+          const DataCell(Text('Fascia', style: TextStyle(fontWeight: FontWeight.bold))),
+          ...domainsList.map((_) => const DataCell(Text('—', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)))),
+        ],
+      ));
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -975,71 +1074,35 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
               const Padding(
                 padding: EdgeInsets.only(bottom: 12),
                 child: Text(
-                  'La scala corrente non include tabelle di conversione: il punteggio standard non e disponibile.',
+                  'La scala corrente non include tabelle di conversione: il punteggio standard non è disponibile.',
                   style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                 ),
               ),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                headingRowColor: WidgetStatePropertyAll(
-                  AppTheme.primaryColor.withValues(alpha: 0.08),
-                ),
-                columns: const [
-                  DataColumn(label: Text('Acronimo')),
-                  DataColumn(label: Text('Nome Esteso')),
-                  DataColumn(label: Text('P. Grezzo'), numeric: true),
-                  DataColumn(label: Text('P. Std'), numeric: true),
-                  DataColumn(label: Text('Percentile'), numeric: true),
-                  DataColumn(label: Text('Fascia')),
-                ],
-                rows: _buildDomainRows(),
-              ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minWidth: constraints.maxWidth,
+                    ),
+                    child: DataTable(
+                      columnSpacing: 24.0,
+                      horizontalMargin: 12.0,
+                      headingRowColor: WidgetStatePropertyAll(
+                        AppTheme.primaryColor.withValues(alpha: 0.08),
+                      ),
+                      columns: columns,
+                      rows: rows,
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),
       ),
     );
-  }
-
-  List<DataRow> _buildDomainRows() {
-    if (_shouldUseSanMartinUi && _analysis != null) {
-      return _analysis!.domini.asMap().entries.map((entry) {
-        final index = entry.key;
-        final domain = entry.value;
-        final color = _domainColors[index % _domainColors.length];
-        final fasciaColor = _getFasciaColor(domain.fascia);
-        return DataRow(
-          cells: [
-            DataCell(_domainCodeChip(domain.codice, color)),
-            DataCell(Text(domain.etichetta, style: const TextStyle(fontSize: 13))),
-            DataCell(Text(domain.punteggioDiretto.toString(), style: const TextStyle(fontSize: 13))),
-            DataCell(_standardScoreBadge(domain.punteggioStandard, fasciaColor)),
-            DataCell(Text(domain.percentileDominio != null ? '${domain.percentileDominio}°' : '—',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold,
-                    color: domain.percentileDominio != null ? fasciaColor : AppTheme.textSecondary))),
-            DataCell(_fasciaBadge(domain.fascia, fasciaColor)),
-          ],
-        );
-      }).toList();
-    }
-
-    final domains = _eval?.domini ?? <DomainScore>[];
-    return domains.asMap().entries.map((entry) {
-      final index = entry.key;
-      final domain = entry.value;
-      final color = _domainColors[index % _domainColors.length];
-      return DataRow(
-        cells: [
-          DataCell(_domainCodeChip(domain.codice, color)),
-          DataCell(Text(domain.etichetta)),
-          DataCell(Text(domain.punteggio.toString())),
-          const DataCell(Text('—')),
-          const DataCell(Text('—')),
-          const DataCell(Text('—')),
-        ],
-      );
-    }).toList();
   }
 
   Widget _standardScoreBadge(int? stdScore, Color fasciaColor) {
@@ -1076,24 +1139,6 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
       case 'Molto Alto':  return const Color(0xFF388E3C);
       default:            return AppTheme.textSecondary;
     }
-  }
-
-  Widget _domainCodeChip(String code, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        code,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: color,
-          fontSize: 12,
-        ),
-      ),
-    );
   }
 
   // ─── Lista risposte con editing inline ─────────────────────────────────────
