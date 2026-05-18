@@ -460,6 +460,140 @@ def _make_san_martin_meta_table(
     return table
 
 
+def _make_san_martin_demographics_table(demographics: dict, styles) -> Table:
+    # Persona
+    persona = demographics.get("persona", {})
+    liv_assistenza = persona.get("livello_assistenza", "—")
+    liv_dipendenza = persona.get("livello_dipendenza", "—")
+    perc_disab = f"{persona.get('percentuale_disabilita', '—')}%" if persona.get("percentuale_disabilita") is not None else "—"
+    anno_cert = persona.get("anno_certificato", "—")
+    
+    # Conditions list
+    condizioni = persona.get("condizioni", {})
+    cond_list = []
+    
+    # physical dis
+    if condizioni.get("disabilita_fisica"):
+        phys_sub = []
+        if condizioni.get("lim_arti_superiori"):
+            phys_sub.append("arti superiori")
+        if condizioni.get("lim_arti_inferiori"):
+            phys_sub.append("arti inferiori")
+        if phys_sub:
+            cond_list.append(f"Dis. Fisica (limitazioni: {', '.join(phys_sub)})")
+        else:
+            cond_list.append("Disabilità Fisica")
+            
+    # sensory dis
+    if condizioni.get("disabilita_sensoriale"):
+        sens_sub = []
+        if condizioni.get("udito_sordita"):
+            sens_sub.append("udito/sordità")
+        if condizioni.get("visiva"):
+            sens_sub.append("visiva")
+        if sens_sub:
+            cond_list.append(f"Dis. Sensoriale ({', '.join(sens_sub)})")
+        else:
+            cond_list.append("Disabilità Sensoriale")
+            
+    if condizioni.get("paralisi_cerebrale"):
+        cond_list.append("Paralisi cerebrale")
+    if condizioni.get("epilessia"):
+        cond_list.append("Epilessia")
+    if condizioni.get("salute_mentale"):
+        cond_list.append("Problemi salute mentale")
+    if condizioni.get("spettro_autistico"):
+        cond_list.append("Autismo (ASD)")
+    if condizioni.get("sindrome_down"):
+        cond_list.append("Sindrome di Down")
+    if condizioni.get("gravi_problemi_salute"):
+        cond_list.append("Gravi problemi salute")
+    if condizioni.get("disturbi_condotta"):
+        cond_list.append("Disturbi condotta")
+    if condizioni.get("altro_specifica"):
+        cond_list.append(f"Altro: {condizioni['altro_specifica']}")
+        
+    condizioni_str = ", ".join(cond_list) if cond_list else "Nessuna altra condizione segnalata"
+    
+    # Informant 1
+    inf1 = demographics.get("informatore1", {})
+    inf1_nome = inf1.get("nome_cognome", "—")
+    inf1_tempo = f"{inf1.get('contatto_anni', 0)}a {inf1.get('contatto_mesi', 0)}m" if (inf1.get("contatto_anni") or inf1.get("contatto_mesi")) else "—"
+    inf1_freq = inf1.get("frequenza_contatto", "—")
+    inf1_rel = inf1.get("relazione", "—")
+    if inf1_rel == "Altro" and inf1.get("relazione_altro"):
+        inf1_rel = f"Altro ({inf1['relazione_altro']})"
+        
+    # Informant 2
+    inf2 = demographics.get("informatore2")
+    
+    rows = [
+        # Intestazione 1: Persona Esaminata
+        [
+            Paragraph("<b>DATI PERSONA ESAMINATA</b>", ParagraphStyle("H1", parent=styles["Normal"], fontSize=8, fontName="Helvetica-Bold", textColor=DARK_TEXT)),
+            "", "", ""
+        ],
+        [
+            _make_label_value_paragraph("Liv. Assistenza:", liv_assistenza, styles),
+            _make_label_value_paragraph("Dipendenza:", liv_dipendenza, styles),
+            _make_label_value_paragraph("Percentuale Dis.:", perc_disab, styles),
+            _make_label_value_paragraph("Anno Certificato:", anno_cert, styles),
+        ],
+        [
+            _make_label_value_paragraph("Altre condizioni:", condizioni_str, styles),
+            "", "", ""
+        ],
+        # Intestazione 2: Informatori
+        [
+            Paragraph("<b>DATI INFORMATORI (CONTATTI)</b>", ParagraphStyle("H2", parent=styles["Normal"], fontSize=8, fontName="Helvetica-Bold", textColor=DARK_TEXT)),
+            "", "", ""
+        ],
+        [
+            _make_label_value_paragraph("Informatore 1:", inf1_nome, styles),
+            _make_label_value_paragraph("Relazione 1:", inf1_rel, styles),
+            _make_label_value_paragraph("Contatto 1:", inf1_tempo, styles),
+            _make_label_value_paragraph("Frequenza 1:", inf1_freq, styles),
+        ],
+    ]
+    
+    if inf2:
+        inf2_nome = inf2.get("nome_cognome", "—")
+        inf2_tempo = f"{inf2.get('contatto_anni', 0)}a {inf2.get('contatto_mesi', 0)}m" if (inf2.get('contatto_anni') or inf2.get('contatto_mesi')) else "—"
+        inf2_freq = inf2.get("frequenza_contatto", "—")
+        inf2_rel = inf2.get("relazione", "—")
+        if inf2_rel == "Altro" and inf2.get("relazione_altro"):
+            inf2_rel = f"Altro ({inf2['relazione_altro']})"
+            
+        rows.append([
+            _make_label_value_paragraph("Informatore 2:", inf2_nome, styles),
+            _make_label_value_paragraph("Relazione 2:", inf2_rel, styles),
+            _make_label_value_paragraph("Contatto 2:", inf2_tempo, styles),
+            _make_label_value_paragraph("Frequenza 2:", inf2_freq, styles),
+        ])
+        
+    table_style = [
+        ('BACKGROUND', (0, 0), (-1, -1), white),
+        # Intestazioni di sezione
+        ('SPAN', (0, 0), (3, 0)),
+        ('BACKGROUND', (0, 0), (3, 0), LIGHT_GREY),
+        ('SPAN', (0, 2), (3, 2)),
+        ('SPAN', (0, 3), (3, 3)),
+        ('BACKGROUND', (0, 3), (3, 3), LIGHT_GREY),
+        
+        ('BOX', (0, 0), (-1, -1), 0.6, BORDER),
+        ('INNERGRID', (0, 0), (-1, -1), 0.3, BORDER),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 7),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+    ]
+    
+    table = Table(rows, colWidths=[4.2 * cm, 4.2 * cm, 4.2 * cm, 4.2 * cm])
+    table.setStyle(TableStyle(table_style))
+    return table
+
+
 def _make_qv_summary_table(analysis: dict, styles) -> Table:
     summary_title = Paragraph(
         "Riepilogo Psicometrico San Martín",
@@ -686,6 +820,12 @@ def generate_evaluation_pdf(
     # ── Info paziente / valutazione ─────────────────────────────────────────
     if is_sanmartin:
         story.append(_make_san_martin_meta_table(evaluation, patient, scale, styles))
+        demographics = evaluation.get("demographics")
+        if demographics:
+            story.append(Spacer(1, 0.4 * cm))
+            story.append(Paragraph("Dati Socio-Demografici di Contesto", section_header))
+            story.append(Spacer(1, 0.15 * cm))
+            story.append(_make_san_martin_demographics_table(demographics, styles))
     else:
         nome_paziente = f"{patient.get('nome', '')} {patient.get('cognome', '')}"
         data_str = _format_pdf_date(evaluation.get("data_compilazione", datetime.now(timezone.utc)))

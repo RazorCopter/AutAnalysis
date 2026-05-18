@@ -46,8 +46,6 @@ class Scale(BaseModel):
     sezioni: List[Section]
 
 
-# --- MODELLI VALUTAZIONE (Evaluation Models) ---
-
 class Answer(BaseModel):
     codice_domanda: str
     punteggio: int
@@ -61,6 +59,7 @@ class Evaluation(BaseModel):
     data_compilazione: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     nome_operatore: str
     nome_intervistato: Optional[str] = None
+    demographics: Optional[dict] = None
     risposte: List[Answer]
 
 # --- MODELLI AGGREGAZIONE E PDF ---
@@ -90,6 +89,7 @@ class AggregatedEvaluation(BaseModel):
     data_compilazione: datetime
     nome_operatore: str
     nome_intervistato: Optional[str] = None
+    demographics: Optional[dict] = None
     domini: List[DomainScore]
     risposte: List[Answer]
 

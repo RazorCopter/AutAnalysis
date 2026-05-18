@@ -137,6 +137,7 @@ class AggregatedEvaluation {
   final String dataCompilazione;
   final String nomeOperatore;
   final String? nomeIntervistato;
+  final Map<String, dynamic>? demographics;
   final List<DomainScore> domini;
   final List<AnswerModel> risposte;
 
@@ -148,6 +149,7 @@ class AggregatedEvaluation {
     required this.dataCompilazione,
     required this.nomeOperatore,
     this.nomeIntervistato,
+    this.demographics,
     required this.domini,
     required this.risposte,
   });
@@ -161,6 +163,7 @@ class AggregatedEvaluation {
       dataCompilazione: json['data_compilazione']?.toString() ?? '',
       nomeOperatore: json['nome_operatore'] ?? '',
       nomeIntervistato: json['nome_intervistato'] as String?,
+      demographics: json['demographics'] as Map<String, dynamic>?,
       domini: (json['domini'] as List?)
               ?.map((e) => DomainScore.fromJson(e as Map<String, dynamic>))
               .toList() ??

@@ -105,6 +105,7 @@ class EvaluationModel {
   final String nomeOperatore;
   final String? nomeIntervistato;
   final String? dataCompilazione;
+  final Map<String, dynamic>? demographics;
   final List<AnswerModel> risposte;
 
   EvaluationModel({
@@ -114,6 +115,7 @@ class EvaluationModel {
     required this.nomeOperatore,
     this.nomeIntervistato,
     this.dataCompilazione,
+    this.demographics,
     required this.risposte,
   });
 
@@ -125,6 +127,7 @@ class EvaluationModel {
       'nome_operatore': nomeOperatore,
       if (nomeIntervistato != null) 'nome_intervistato': nomeIntervistato,
       if (dataCompilazione != null) 'data_compilazione': dataCompilazione,
+      if (demographics != null) 'demographics': demographics,
       'risposte': risposte.map((e) => e.toJson()).toList(),
     };
   }
