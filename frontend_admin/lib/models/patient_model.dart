@@ -4,6 +4,7 @@ class PatientModel {
   String cognome;
   int? altezza;
   double? peso;
+  String? dataNascita;
   String? note;
 
   PatientModel({
@@ -12,6 +13,7 @@ class PatientModel {
     required this.cognome,
     this.altezza,
     this.peso,
+    this.dataNascita,
     this.note,
   });
 
@@ -22,6 +24,7 @@ class PatientModel {
       cognome: json['cognome'],
       altezza: json['altezza'],
       peso: json['peso'] != null ? (json['peso'] as num).toDouble() : null,
+      dataNascita: json['data_nascita'],
       note: json['note'],
     );
   }
@@ -33,6 +36,7 @@ class PatientModel {
       'cognome': cognome,
       'altezza': altezza,
       'peso': peso,
+      'data_nascita': dataNascita,
       'note': note,
     };
   }

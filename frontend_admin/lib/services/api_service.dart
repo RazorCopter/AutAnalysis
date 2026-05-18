@@ -304,4 +304,17 @@ class ApiService {
       return false;
     }
   }
+
+  Future<Map<String, dynamic>?> getDashboardStats() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/dashboard-stats'));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print('Errore caricamento statistiche dashboard: $e');
+      return null;
+    }
+  }
 }

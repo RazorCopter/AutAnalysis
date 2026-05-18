@@ -6,7 +6,12 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
 class AnagraficaScreen extends StatefulWidget {
-  const AnagraficaScreen({super.key});
+  final String? initialSearchQuery;
+
+  const AnagraficaScreen({
+    super.key,
+    this.initialSearchQuery,
+  });
 
   @override
   State<AnagraficaScreen> createState() => _AnagraficaScreenState();
@@ -15,12 +20,16 @@ class AnagraficaScreen extends StatefulWidget {
 class _AnagraficaScreenState extends State<AnagraficaScreen> {
   final ApiService _apiService = ApiService();
   late Future<List<PatientModel>> _patientsFuture;
+  final TextEditingController _searchController = TextEditingController();
   List<ScaleModel> _availableScales = [];
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
+    if (widget.initialSearchQuery != null) {
+      _searchController.text = widget.initialSearchQuery!;
+    }
     _refreshPatients();
   }
 
@@ -44,6 +53,7 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
     final cognomeController = TextEditingController(text: patient?.cognome ?? '');
     final altezzaController = TextEditingController(text: patient?.altezza?.toString() ?? '');
     final pesoController = TextEditingController(text: patient?.peso?.toString() ?? '');
+    final dataNascitaController = TextEditingController(text: patient?.dataNascita != null ? _formatDateString(patient!.dataNascita!) : '');
     final noteController = TextEditingController(text: patient?.note ?? '');
 
     final _formKey = GlobalKey<FormState>();
@@ -119,6 +129,39 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
+                  controller: dataNascitaController,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Data di Nascita',
+                    prefixIcon: Icon(Icons.cake_outlined),
+                    hintText: 'Seleziona data di nascita...',
+                  ),
+                  onTap: () async {
+                    DateTime initialDate = DateTime(1990);
+                    if (dataNascitaController.text.isNotEmpty) {
+                      try {
+                        final parts = dataNascitaController.text.split('/');
+                        if (parts.length == 3) {
+                          initialDate = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+                        }
+                      } catch (_) {}
+                    }
+                    final DateTime? picked = await showDatePicker(
+                      context: context,
+                      initialDate: initialDate,
+                      firstDate: DateTime(1900),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      final day = picked.day.toString().padLeft(2, '0');
+                      final month = picked.month.toString().padLeft(2, '0');
+                      final year = picked.year.toString();
+                      dataNascitaController.text = '$day/$month/$year';
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
                   controller: noteController,
                   decoration: const InputDecoration(labelText: 'Note', prefixIcon: Icon(Icons.notes)),
                   maxLines: 3,
@@ -141,6 +184,7 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
                             cognome: cognomeController.text.trim(),
                             altezza: int.tryParse(altezzaController.text.trim()),
                             peso: double.tryParse(pesoController.text.trim().replaceAll(',', '.')),
+                            dataNascita: _parseDateString(dataNascitaController.text.trim()),
                             note: noteController.text.trim(),
                           );
 
@@ -306,7 +350,50 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 20),
+              // Search Bar
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE8EEF8)),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.search, color: AppTheme.textSecondary),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: (val) => setState(() {}),
+                              decoration: const InputDecoration(
+                                hintText: 'Cerca paziente per nome, cognome o note...',
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                filled: false,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                          if (_searchController.text.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () => setState(() {
+                                _searchController.clear();
+                              }),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
               // Lista
               Expanded(
                 child: FutureBuilder<List<PatientModel>>(
@@ -333,6 +420,25 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
                             style: TextStyle(fontSize: 16, color: AppTheme.textSecondary)),
                       );
                     }
+
+                    // Filtra i pazienti in base alla query
+                    final query = _searchController.text.toLowerCase().trim();
+                    final filteredList = query.isEmpty
+                        ? snapshot.data!
+                        : snapshot.data!.where((p) {
+                            final matchNome = p.nome.toLowerCase().contains(query);
+                            final matchCognome = p.cognome.toLowerCase().contains(query);
+                            final matchNote = (p.note ?? '').toLowerCase().contains(query);
+                            return matchNome || matchCognome || matchNote;
+                          }).toList();
+
+                    if (filteredList.isEmpty) {
+                      return const Center(
+                        child: Text('Nessun paziente corrisponde ai criteri di ricerca.',
+                            style: TextStyle(fontSize: 15, color: AppTheme.textSecondary)),
+                      );
+                    }
+
                     return GridView.builder(
                       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: 400,
@@ -340,9 +446,9 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
                       ),
-                      itemCount: snapshot.data!.length,
+                      itemCount: filteredList.length,
                       padding: const EdgeInsets.only(bottom: 24),
-                      itemBuilder: (ctx, i) => _buildPatientCard(snapshot.data![i], i),
+                      itemBuilder: (ctx, i) => _buildPatientCard(filteredList[i], i),
                     );
                   },
                 ),
@@ -404,6 +510,8 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
                       const SizedBox(height: 4),
                       Text(
                         [
+                          if (patient.dataNascita != null && patient.dataNascita!.isNotEmpty)
+                            'Nato il ${_formatDateString(patient.dataNascita!)}',
                           if (patient.altezza != null) '${patient.altezza} cm',
                           if (patient.peso != null) '${patient.peso} kg',
                         ].join(' • '),
@@ -495,5 +603,26 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
         ),
       ),
     );
+  }
+
+  String _formatDateString(String yyyymmdd) {
+    try {
+      final parts = yyyymmdd.split('-');
+      if (parts.length == 3) {
+        return '${parts[2]}/${parts[1]}/${parts[0]}';
+      }
+    } catch (_) {}
+    return yyyymmdd;
+  }
+
+  String _parseDateString(String ddmmyyyy) {
+    if (ddmmyyyy.isEmpty) return '';
+    try {
+      final parts = ddmmyyyy.split('/');
+      if (parts.length == 3) {
+        return '${parts[2]}-${parts[1]}-${parts[0]}';
+      }
+    } catch (_) {}
+    return ddmmyyyy;
   }
 }

@@ -4,6 +4,7 @@ import 'screens/settings_screen.dart';
 import 'screens/protocols_screen.dart';
 import 'screens/anagrafica_screen.dart';
 import 'screens/selection_screen.dart';
+import 'screens/dashboard_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -33,6 +34,7 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int _selectedIndex = 0;
+  String? _patientSearchQuery;
 
   static const _navItems = [
     (icon: Icons.dashboard_outlined, active: Icons.dashboard, label: 'Dashboard'),
@@ -168,10 +170,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 250),
       child: switch (_selectedIndex) {
-        1 => const SelectionScreen(),
-        2 => const AnagraficaScreen(),
-        3 => const ProtocolsScreen(),
-        4 => const SettingsScreen(),
+        0 => DashboardScreen(
+            key: const ValueKey(0),
+            onNavigate: (index, {searchFilter}) {
+              setState(() {
+                _patientSearchQuery = searchFilter;
+                _selectedIndex = index;
+              });
+            },
+          ),
+        1 => const SelectionScreen(key: ValueKey(1)),
+        2 => AnagraficaScreen(
+            key: ValueKey('anagrafica_${_patientSearchQuery ?? ""}_$_selectedIndex'),
+            initialSearchQuery: _patientSearchQuery,
+          ),
+        3 => const ProtocolsScreen(key: ValueKey(3)),
+        4 => const SettingsScreen(key: ValueKey(4)),
         _ => _buildPlaceholder(),
       },
     );
