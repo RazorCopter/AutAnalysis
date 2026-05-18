@@ -336,7 +336,9 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
               _buildHistoryCard(),
               const SizedBox(height: 20),
               if (_shouldUseSanMartinUi) ...[
-                _buildSanMartinSummarySection(),
+                _buildQvSummaryCard(),
+                const SizedBox(height: 20),
+                _buildQvGraphicTable(),
                 const SizedBox(height: 20),
               ],
               _buildMetaCard(),
@@ -603,6 +605,42 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
     }
 
     return _buildQvSummaryCard();
+  }
+
+  // ─── Grafico visivo Qualità della Vita (CustomPainter) ─────────────────────
+  Widget _buildQvGraphicTable() {
+    if (!_shouldUseSanMartinUi || _analysis == null) return const SizedBox();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Tabella Visiva Qualità della Vita',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Punteggi standard per dominio con fasce normative (1-20)',
+              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return SizedBox(
+                  width: constraints.maxWidth,
+                  child: _QualityOfLifePainter(
+                    domains: _analysis!.domini,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _summaryMetric({
@@ -979,8 +1017,10 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
                 columns: const [
                   DataColumn(label: Text('Acronimo')),
                   DataColumn(label: Text('Nome Esteso')),
-                  DataColumn(label: Text('Punteggio Grezzo')),
-                  DataColumn(label: Text('Punteggio Standard')),
+                  DataColumn(label: Text('P. Grezzo'), numeric: true),
+                  DataColumn(label: Text('P. Std'), numeric: true),
+                  DataColumn(label: Text('Percentile'), numeric: true),
+                  DataColumn(label: Text('Fascia')),
                 ],
                 rows: _buildDomainRows(),
               ),
@@ -997,17 +1037,17 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
         final index = entry.key;
         final domain = entry.value;
         final color = _domainColors[index % _domainColors.length];
+        final fasciaColor = _getFasciaColor(domain.fascia);
         return DataRow(
           cells: [
             DataCell(_domainCodeChip(domain.codice, color)),
-            DataCell(Text(domain.etichetta)),
-            DataCell(Text(domain.punteggioDiretto.toString())),
-            DataCell(
-              Text(
-                domain.punteggioStandard?.toString() ?? '—',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
+            DataCell(Text(domain.etichetta, style: const TextStyle(fontSize: 13))),
+            DataCell(Text(domain.punteggioDiretto.toString(), style: const TextStyle(fontSize: 13))),
+            DataCell(_standardScoreBadge(domain.punteggioStandard, fasciaColor)),
+            DataCell(Text(domain.percentileDominio != null ? '${domain.percentileDominio}°' : '—',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold,
+                    color: domain.percentileDominio != null ? fasciaColor : AppTheme.textSecondary))),
+            DataCell(_fasciaBadge(domain.fascia, fasciaColor)),
           ],
         );
       }).toList();
@@ -1024,9 +1064,66 @@ class _EvaluationDetailScreenState extends State<EvaluationDetailScreen> {
           DataCell(Text(domain.etichetta)),
           DataCell(Text(domain.punteggio.toString())),
           const DataCell(Text('—')),
+          const DataCell(Text('—')),
+          const DataCell(Text('—')),
         ],
       );
     }).toList();
+  }
+
+  Widget _standardScoreBadge(int? stdScore, Color fasciaColor) {
+    if (stdScore == null) {
+      return const Text('—', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary));
+    }
+    return Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: fasciaColor.withValues(alpha: 0.14),
+        border: Border.all(color: fasciaColor, width: 2.2),
+      ),
+      child: Center(
+        child: Text(
+          stdScore.toString(),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: fasciaColor,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _fasciaBadge(String? fascia, Color color) {
+    final text = fascia ?? '—';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Color _getFasciaColor(String? fascia) {
+    switch (fascia) {
+      case 'Molto Basso': return const Color(0xFFD32F2F);
+      case 'Basso':       return const Color(0xFFF57C00);
+      case 'Medio':       return const Color(0xFFFBC02D);
+      case 'Alto':        return const Color(0xFF7CB342);
+      case 'Molto Alto':  return const Color(0xFF388E3C);
+      default:            return AppTheme.textSecondary;
+    }
   }
 
   Widget _domainCodeChip(String code, Color color) {
@@ -1347,4 +1444,256 @@ class _DashedRadarMeanPainter extends CustomPainter {
         oldDelegate.color != color ||
         oldDelegate.levelFraction != levelFraction;
   }
+}
+
+class _QualityOfLifePainter extends StatelessWidget {
+  final List<DomainAnalysis> domains;
+
+  const _QualityOfLifePainter({required this.domains});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size(double.infinity, _calculateHeight(domains.length)),
+      painter: _QualityOfLifeTablePainter(domains: domains),
+    );
+  }
+
+  double _calculateHeight(int domainCount) {
+    const rowHeight = 48.0;
+    const headerHeight = 44.0;
+    const labelWidth = 72.0;
+    return headerHeight + (domainCount * rowHeight) + 20;
+  }
+}
+
+class _QualityOfLifeTablePainter extends CustomPainter {
+  final List<DomainAnalysis> domains;
+
+  static const List<_FasciaBand> _fascie = [
+    _FasciaBand(label: 'Molto Alto', min: 16, max: 20, color: Color(0xFF388E3C)),
+    _FasciaBand(label: 'Alto',      min: 13, max: 15, color: Color(0xFF7CB342)),
+    _FasciaBand(label: 'Medio',     min:  8, max: 12, color: Color(0xFFFBC02D)),
+    _FasciaBand(label: 'Basso',     min:  5, max:  7, color: Color(0xFFF57C00)),
+    _FasciaBand(label: 'Molto Basso', min: 1, max: 4, color: Color(0xFFD32F2F)),
+  ];
+
+  _QualityOfLifeTablePainter({required this.domains});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const labelWidth = 72.0;
+    const headerHeight = 44.0;
+    const rowHeight = 48.0;
+    const barAreaX = labelWidth + 8;
+    const barAreaWidth = 520.0;
+    const scoreBoxWidth = 52.0;
+    const rightX = barAreaX + barAreaWidth + scoreBoxWidth + 16;
+    const numRows = 5;
+
+    final headerPaint = Paint()..color = const Color(0xFF1A237E);
+    final gridPaint = Paint()
+      ..color = const Color(0xFFDDE7F8)
+      ..strokeWidth = 0.5
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, rightX, headerHeight),
+      Paint()..color = const Color(0xFFF0F5FF),
+    );
+
+    final headerStyle = TextStyle(
+      color: Colors.white,
+      fontSize: 12,
+      fontWeight: FontWeight.bold,
+    );
+
+    _drawText(canvas, 'Dominio', 8, headerHeight / 2, headerStyle, anchor: Alignment.centerLeft);
+    _drawText(canvas, '1', barAreaX + barAreaWidth * 0 / 4, headerHeight / 2, headerStyle, anchor: Alignment.center);
+    _drawText(canvas, '5', barAreaX + barAreaWidth * 1 / 4, headerHeight / 2, headerStyle, anchor: Alignment.center);
+    _drawText(canvas, '10', barAreaX + barAreaWidth * 2 / 4, headerHeight / 2, headerStyle, anchor: Alignment.center);
+    _drawText(canvas, '15', barAreaX + barAreaWidth * 3 / 4, headerHeight / 2, headerStyle, anchor: Alignment.center);
+    _drawText(canvas, '20', barAreaX + barAreaWidth, headerHeight / 2, headerStyle, anchor: Alignment.center);
+    _drawText(canvas, 'P.STD', barAreaX + barAreaWidth + 16, headerHeight / 2, headerStyle, anchor: Alignment.centerLeft);
+
+    for (var i = 0; i <= 4; i++) {
+      final x = barAreaX + (barAreaWidth * i / 4);
+      canvas.drawLine(
+        Offset(x, headerHeight),
+        Offset(x, headerHeight + domains.length * rowHeight),
+        gridPaint,
+      );
+    }
+
+    for (var d = 0; d < domains.length; d++) {
+      final domain = domains[d];
+      final y = headerHeight + (d * rowHeight);
+      final rowPaint = Paint()..color = (d.isOdd) ? const Color(0xFFF8FBFF) : Colors.white;
+      canvas.drawRect(Rect.fromLTWH(0, y, rightX, rowHeight), rowPaint);
+      canvas.drawLine(Offset(0, y + rowHeight), Offset(rightX, y + rowHeight), gridPaint);
+
+      final domainColor = _getDomainColor(d);
+      final labelStyle = TextStyle(
+        color: domainColor,
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+      );
+      _drawText(canvas, domain.codice, 8, y + rowHeight / 2, labelStyle, anchor: Alignment.centerLeft);
+
+      for (var f = 0; f < _fascie.length; f++) {
+        final band = _fascie[f];
+        final bandY = y + (f * rowHeight / _fascie.length);
+        final bandHeight = rowHeight / _fascie.length;
+
+        final bandPaint = Paint()
+          ..color = band.color.withValues(alpha: 0.18)
+          ..style = PaintingStyle.fill;
+        canvas.drawRect(
+          Rect.fromLTWH(barAreaX, bandY, barAreaWidth, bandHeight),
+          bandPaint,
+        );
+
+        final bandLabelStyle = TextStyle(
+          color: band.color.withValues(alpha: 0.6),
+          fontSize: 8,
+          fontWeight: FontWeight.w500,
+        );
+        _drawText(canvas, band.label, barAreaX + 4, bandY + bandHeight / 2, bandLabelStyle, anchor: Alignment.centerLeft);
+
+        final bandRightStyle = TextStyle(
+          color: band.color.withValues(alpha: 0.6),
+          fontSize: 8,
+          fontWeight: FontWeight.w500,
+        );
+        _drawText(canvas, '${band.min}-${band.max}', barAreaX + barAreaWidth - 4, bandY + bandHeight / 2, bandRightStyle, anchor: Alignment.centerRight);
+      }
+
+      canvas.drawRect(Rect.fromLTWH(barAreaX, y, barAreaWidth, rowHeight), gridPaint);
+
+      final stdScore = domain.punteggioStandard;
+      if (stdScore != null) {
+        final scoreX = barAreaX + (stdScore / 20.0) * barAreaWidth;
+        final bandColor = _getFasciaColor(domain.fascia);
+
+        final circlePaint = Paint()
+          ..color = bandColor
+          ..style = PaintingStyle.fill;
+        canvas.drawCircle(Offset(scoreX, y + rowHeight / 2), 13, circlePaint);
+
+        final circleBorderPaint = Paint()
+          ..color = bandColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5;
+        canvas.drawCircle(Offset(scoreX, y + rowHeight / 2), 16, circleBorderPaint);
+
+        final whiteCirclePaint = Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.fill;
+        canvas.drawCircle(Offset(scoreX, y + rowHeight / 2), 11, whiteCirclePaint);
+        canvas.drawCircle(Offset(scoreX, y + rowHeight / 2), 11, circleBorderPaint);
+
+        final scoreTextStyle = TextStyle(
+          color: bandColor,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        );
+        _drawText(canvas, stdScore.toString(), scoreX, y + rowHeight / 2, scoreTextStyle, anchor: Alignment.center);
+      }
+
+      final scoreTextStyle = TextStyle(
+        color: _getFasciaColor(domain.fascia),
+        fontSize: 13,
+        fontWeight: FontWeight.bold,
+      );
+      final scoreText = domain.punteggioStandard?.toString() ?? '—';
+      _drawText(canvas, scoreText, barAreaX + barAreaWidth + scoreBoxWidth / 2, y + rowHeight / 2, scoreTextStyle, anchor: Alignment.center);
+
+      canvas.drawLine(
+        Offset(barAreaX + barAreaWidth, y),
+        Offset(barAreaX + barAreaWidth, y + rowHeight),
+        gridPaint,
+      );
+    }
+
+    final legendY = headerHeight + domains.length * rowHeight + 12;
+    const legendItems = [
+      ('Molto Basso', Color(0xFFD32F2F)),
+      ('Basso',       Color(0xFFF57C00)),
+      ('Medio',       Color(0xFFFBC02D)),
+      ('Alto',        Color(0xFF7CB342)),
+      ('Molto Alto',  Color(0xFF388E3C)),
+    ];
+
+    var legendX = 0.0;
+    for (final item in legendItems) {
+      final legendPaint = Paint()
+        ..color = item.$2
+        ..style = PaintingStyle.fill;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromLTWH(legendX, legendY, 12, 12), const Radius.circular(3)),
+        legendPaint,
+      );
+      final legendStyle = TextStyle(
+        color: const Color(0xFF718096),
+        fontSize: 10,
+        fontWeight: FontWeight.w500,
+      );
+      _drawText(canvas, item.$1, legendX + 16, legendY + 6, legendStyle, anchor: Alignment.centerLeft);
+      legendX += 72;
+    }
+  }
+
+  void _drawText(Canvas canvas, String text, double x, double y, TextStyle style, {Alignment anchor = Alignment.center}) {
+    final tp = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    double dx = x;
+    double dy = y - tp.height / 2;
+    if (anchor == Alignment.center) dx -= tp.width / 2;
+    if (anchor == Alignment.centerLeft) dx -= 0;
+    if (anchor == Alignment.centerRight) dx -= tp.width;
+
+    tp.paint(canvas, Offset(dx, dy));
+  }
+
+  Color _getDomainColor(int index) {
+    const colors = [
+      Color(0xFF1A237E), Color(0xFFE53935), Color(0xFF43A047),
+      Color(0xFFFB8C00), Color(0xFF8E24AA), Color(0xFF00ACC1),
+      Color(0xFF3949AB), Color(0xFFF4511E),
+    ];
+    return colors[index % colors.length];
+  }
+
+  Color _getFasciaColor(String? fascia) {
+    switch (fascia) {
+      case 'Molto Basso': return const Color(0xFFD32F2F);
+      case 'Basso':       return const Color(0xFFF57C00);
+      case 'Medio':       return const Color(0xFFFBC02D);
+      case 'Alto':        return const Color(0xFF7CB342);
+      case 'Molto Alto':  return const Color(0xFF388E3C);
+      default:            return const Color(0xFF718096);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _QualityOfLifeTablePainter oldDelegate) {
+    return true;
+  }
+}
+
+class _FasciaBand {
+  final String label;
+  final int min;
+  final int max;
+  final Color color;
+
+  const _FasciaBand({
+    required this.label,
+    required this.min,
+    required this.max,
+    required this.color,
+  });
 }

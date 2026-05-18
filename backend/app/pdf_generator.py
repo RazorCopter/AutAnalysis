@@ -385,15 +385,36 @@ def _make_qv_summary_table(analysis: dict, styles) -> Table:
 
 
 def _make_san_martin_domain_table(analysis: dict) -> Table:
-    headers = ["Codice", "Dominio", "P. Grezzo", "P. Standard", "Fascia"]
+    headers = ["Codice", "Dominio", "P. Grezzo", "P. Std", "Percentile", "Fascia"]
     rows = []
     for domain in analysis.get("domini", []):
         fascia = _safe_text(domain.get("fascia"))
+        fascia_color_hex = FASCIA_COLORS.get(fascia, '#2D3748')
+        fascia_color = HexColor(fascia_color_hex)
+
+        std_val = domain.get("punteggio_standard")
+        std_text = _safe_text(std_val)
+
+        std_cell = Paragraph(
+            f"<font color='{fascia_color_hex}'><b>{std_text}</b></font>",
+            ParagraphStyle(
+                f"std_{domain.get('codice', '')}",
+                fontSize=10,
+                leading=12,
+                fontName="Helvetica-Bold",
+                alignment=TA_CENTER,
+            ),
+        )
+
+        perc_val = domain.get("percentile_dominio")
+        perc_text = f"{perc_val}°" if perc_val is not None else "—"
+
         rows.append([
             _safe_text(domain.get("codice")),
             _safe_text(domain.get("etichetta")),
             _safe_text(domain.get("punteggio_diretto")),
-            _safe_text(domain.get("punteggio_standard")),
+            std_cell,
+            perc_text,
             Paragraph(
                 fascia,
                 ParagraphStyle(
@@ -401,7 +422,7 @@ def _make_san_martin_domain_table(analysis: dict) -> Table:
                     fontSize=8,
                     leading=10,
                     fontName="Helvetica-Bold",
-                    textColor=HexColor(FASCIA_COLORS.get(fascia, '#2D3748')),
+                    textColor=fascia_color,
                     alignment=TA_CENTER,
                 ),
             ),
@@ -410,7 +431,7 @@ def _make_san_martin_domain_table(analysis: dict) -> Table:
     table = _make_table(
         headers=headers,
         rows=rows,
-        col_widths=[1.8 * cm, 7.8 * cm, 2.6 * cm, 2.8 * cm, 3.0 * cm],
+        col_widths=[1.5 * cm, 5.5 * cm, 1.8 * cm, 1.5 * cm, 1.7 * cm, 2.5 * cm],
         header_color=PRIMARY,
         style_extras=[
             ('ALIGN', (0, 0), (0, -1), 'CENTER'),
