@@ -367,6 +367,31 @@ async def download_evaluation_pdf(
     )
 
 
+@admin_router.get("/evaluations/{evaluation_id}/analysis", tags=["Admin - Evaluations"])
+async def get_evaluation_analysis(evaluation_id: str):
+    """Restituisce l'analisi psicometrica completa di una valutazione."""
+    eval_doc = await _find_evaluation_document(evaluation_id)
+    if not eval_doc:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Valutazione non trovata per id '{evaluation_id}'",
+        )
+    scale_doc = _hydrate_scale_doc(
+        await scales_collection.find_one({"id": eval_doc["id_scala"]})
+    )
+    if not scale_doc:
+        raise HTTPException(status_code=404, detail="Scala associata non trovata")
+
+    analysis = compute_psychometric_analysis(
+        risposte=eval_doc.get("risposte", []),
+        scale_doc=scale_doc,
+    )
+    analysis["id_valutazione"] = _extract_evaluation_identifier(eval_doc) or evaluation_id
+    analysis["id_paziente"] = eval_doc.get("id_paziente", "")
+    analysis["id_scala"] = eval_doc.get("id_scala", "")
+    return analysis
+
+
 @admin_router.get("/evaluations/{patient_id}/{scale_id}",
                   response_model=List[AggregatedEvaluation],
                   tags=["Admin - Evaluations"])
@@ -460,31 +485,6 @@ async def get_settings():
             settings.gemini_api_key = "***-HIDDEN"
         return settings
     return AppSettings()
-
-
-@admin_router.get("/evaluations/{evaluation_id}/analysis", tags=["Admin - Evaluations"])
-async def get_evaluation_analysis(evaluation_id: str):
-    """Restituisce l'analisi psicometrica completa di una valutazione."""
-    eval_doc = await _find_evaluation_document(evaluation_id)
-    if not eval_doc:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Valutazione non trovata per id '{evaluation_id}'",
-        )
-    scale_doc = _hydrate_scale_doc(
-        await scales_collection.find_one({"id": eval_doc["id_scala"]})
-    )
-    if not scale_doc:
-        raise HTTPException(status_code=404, detail="Scala associata non trovata")
-
-    analysis = compute_psychometric_analysis(
-        risposte=eval_doc.get("risposte", []),
-        scale_doc=scale_doc,
-    )
-    analysis["id_valutazione"] = _extract_evaluation_identifier(eval_doc) or evaluation_id
-    analysis["id_paziente"] = eval_doc.get("id_paziente", "")
-    analysis["id_scala"] = eval_doc.get("id_scala", "")
-    return analysis
 
 
 # ─── DATABASE EXPORT / IMPORT ────────────────────────────────────────────────
