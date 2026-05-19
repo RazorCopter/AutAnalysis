@@ -52,12 +52,13 @@ def _wrap_label(text: str, max_chars: int = 16) -> str:
         return text
     if ' ' in text:
         mid = len(text) // 2
-        best = mid
+        best = -1
         for i, ch in enumerate(text):
             if ch == ' ':
-                if abs(i - mid) < abs(best - mid):
+                if best == -1 or abs(i - mid) < abs(best - mid):
                     best = i
-        return text[:best] + '\n' + text[best + 1:]
+        if best != -1:
+            return text[:best] + '\n' + text[best + 1:]
     mid = len(text) // 2
     return text[:mid] + '\n' + text[mid:]
 
@@ -306,73 +307,71 @@ def _make_qol_visual_chart(domains: List[dict]) -> io.BytesIO:
 
 def _make_bar_chart(domains: List[dict], score_min: int = 6, score_max: int = 18) -> io.BytesIO:
     """
-    Crea un grafico a barre orizzontali dal design moderno ed elegante (stile bento/progress bar):
-    - Sfondo pulito con tracce di progresso grigie (background track)
-    - Barre dai colori curati e soft
-    - Punteggi visualizzati in badge eleganti
-    - Area normativa ottimale ombreggiata in modo discreto (axvspan)
-    - Gridline radiali soft ed eliminazione delle spine non necessarie
+    Crea un grafico a barre orizzontali ad alto impatto estetico (flat left, rounded right)
+    ispirato alle interfacce moderne.
     """
+    import matplotlib.patches as patches
+    
     labels = [_wrap_label(d['etichetta'], max_chars=20) for d in domains]
     scores = [d["punteggio_totale"] for d in domains]
     n = len(labels)
     colors = DOMAIN_COLORS[:n]
 
-    # Dimensione dinamica per evitare sovrapposizioni
-    fig, ax = plt.subplots(figsize=(10, max(4.0, n * 0.7 + 1.2)), dpi=150)
+    fig, ax = plt.subplots(figsize=(10, max(4.0, n * 0.65 + 1.2)), dpi=150)
     fig.patch.set_facecolor('#FFFFFF')
     ax.set_facecolor('#FFFFFF')
 
     y = np.arange(n)
-    
-    # 1. Disegna le tracce di sfondo grigie per dare l'effetto di "progress bar" moderno
-    max_track = [score_max] * n
-    ax.barh(y, max_track, color='#F1F5F9', height=0.45, edgecolor='none', zorder=1)
+    h = 0.46  # Spessore delle barre
 
-    # 2. Disegna le barre reali dei punteggi
-    bars = ax.barh(y, scores, color=colors, height=0.45, edgecolor='none', zorder=2)
+    # Evidenzia la fascia ottimale (normativa)
+    ax.axvspan(12, 18, color='#4CAF50', alpha=0.04, label='Fascia Ottimale (12–18)', zorder=0)
+    ax.axvline(12, color='#81C784', linewidth=1.0, linestyle='--', alpha=0.4, zorder=0)
 
-    # 3. Evidenzia la fascia ottimale (normativa) con una sfumatura di sfondo discreta (tra 12 e 18)
-    ax.axvspan(12, 18, color='#4CAF50', alpha=0.06, label='Fascia Ottimale (12–18)', zorder=0)
-    ax.axvline(12, color='#81C784', linewidth=1.0, linestyle='--', alpha=0.5, zorder=0)
+    for idx, (y_val, score, bar_color) in enumerate(zip(y, scores, colors)):
+        # 1. Disegna la barra principale (rettangolo flat a sinistra)
+        rect = patches.Rectangle((0, y_val - h/2), score, h, color=bar_color, zorder=2)
+        ax.add_patch(rect)
+        
+        # 2. Disegna il cerchio per rendere l'estremità destra perfettamente arrotondata
+        circle = patches.Circle((score, y_val), h/2, color=bar_color, zorder=2)
+        ax.add_patch(circle)
 
-    # 4. Aggiungi i testi dei punteggi con badge arrotondati
-    for bar, score in zip(bars, scores):
-        width = bar.get_width()
+        # 3. Posiziona il testo del punteggio in grassetto subito dopo l'estremità arrotondata
         ax.text(
-            width + 0.3, 
-            bar.get_y() + bar.get_height() / 2,
-            f"  {score}  ", 
+            score + 0.4, 
+            y_val, 
+            str(score), 
             va='center', 
             ha='left', 
-            fontsize=9.5,
+            fontsize=10.5,
             fontweight='bold', 
             color='#1E293B',
-            bbox=dict(boxstyle='round,pad=0.25', facecolor='#F1F5F9', edgecolor='#E2E8F0', alpha=0.9),
             zorder=4
         )
 
-    # 5. Configurazione assi ed etichette
     ax.set_yticks(y)
     ax.set_yticklabels(labels, fontsize=9.5, color='#334155', fontweight='bold')
     ax.set_xlabel('Punteggio', fontsize=9.5, color='#64748B', fontweight='bold', labelpad=8)
     ax.set_xlim(0, score_max * 1.15)
     ax.invert_yaxis()  # Inverte l'ordine per avere il primo dominio in alto
     
-    # Rimozione delle spine superflue per un look minimale
-    for spine in ['top', 'right', 'left', 'bottom']:
+    # Pulizia spine
+    for spine in ['top', 'right']:
         ax.spines[spine].set_visible(False)
+    ax.spines['left'].set_color('#CBD5E1')
+    ax.spines['left'].set_linewidth(1.0)
+    ax.spines['bottom'].set_color('#CBD5E1')
+    ax.spines['bottom'].set_linewidth(1.0)
 
-    # Configurazione della griglia verticale
+    # Griglia e tick
     ax.xaxis.grid(True, color='#F1F5F9', linestyle='-', linewidth=1.0, zorder=1)
     ax.yaxis.grid(False)
-    ax.tick_params(bottom=False, left=False)
+    ax.tick_params(bottom=True, left=True, colors='#64748B')
 
-    # Titolo ed elementi di contorno
     ax.set_title('Profilo di Qualità della Vita per Dominio', fontsize=12.5,
                  fontweight='bold', color='#0F172A', pad=18)
     
-    # Legenda moderna e discreta
     ax.legend(loc='lower right', frameon=False, fontsize=8.5)
 
     plt.tight_layout()
