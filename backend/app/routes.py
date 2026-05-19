@@ -137,26 +137,50 @@ async def get_patients():
     cursor = patients_collection.find({})
     patients = await cursor.to_list(length=1000)
     
+    # Recupera tutte le scale per mappare l'ID al nome
+    scales_cursor = scales_collection.find({})
+    scales_list = await scales_cursor.to_list(length=100)
+    scale_map = {}
+    for s in scales_list:
+        scale_map[s["id"]] = s["nome"].lower()
+        
     # Arricchisce ciascun paziente con le date delle ultime scale compilate
     for pat in patients:
         pat_id = pat["id"]
         
-        # Cerca l'ultima valutazione POS
-        last_pos = await evaluations_collection.find_one(
-            {"id_paziente": pat_id, "id_scala": {"$regex": "pos", "$options": "i"}},
-            sort=[("data_compilazione", -1)]
-        )
-        if last_pos:
-            pat["ultimo_pos_compilato"] = last_pos.get("data_compilazione")
+        # Recupera tutte le valutazioni per questo paziente, ordinate per data decrescente
+        evals_cursor = evaluations_collection.find({"id_paziente": pat_id}).sort("data_compilazione", -1)
+        evals = await evals_cursor.to_list(length=100)
+        
+        # Inizializziamo i campi come None (o stringhe vuote)
+        pat_dict = pat if isinstance(pat, dict) else pat.__dict__
+        pat_dict["ultimo_pos_compilato"] = None
+        pat_dict["ultimo_san_martin_compilato"] = None
+        
+        for ev in evals:
+            scale_id = ev.get("id_scala")
+            scale_name = scale_map.get(scale_id, "").lower()
             
-        # Cerca l'ultima valutazione San Martín
-        last_sm = await evaluations_collection.find_one(
-            {"id_paziente": pat_id, "id_scala": {"$regex": "san.*martin", "$options": "i"}},
-            sort=[("data_compilazione", -1)]
-        )
-        if last_sm:
-            pat["ultimo_san_martin_compilato"] = last_sm.get("data_compilazione")
+            data_val = ev.get("data_compilazione")
+            data_str = None
+            if data_val:
+                if isinstance(data_val, datetime):
+                    data_str = data_val.isoformat()
+                else:
+                    data_str = str(data_val)
             
+            # Se la scala è POS ed è la prima che incontriamo (l'ultima compilata cronologicamente)
+            if not pat_dict.get("ultimo_pos_compilato") and ("pos" in scale_name or "pos" in scale_id.lower()):
+                pat_dict["ultimo_pos_compilato"] = data_str
+                
+            # Se la scala è San Martín ed è la prima che incontriamo
+            if not pat_dict.get("ultimo_san_martin_compilato") and ("martin" in scale_name or "martin" in scale_id.lower()):
+                pat_dict["ultimo_san_martin_compilato"] = data_str
+                
+            # Se abbiamo trovato entrambe, possiamo interrompere la ricerca per questo paziente
+            if pat_dict.get("ultimo_pos_compilato") and pat_dict.get("ultimo_san_martin_compilato"):
+                break
+                
     return patients
 
 @admin_router.get("/scales", response_model=List[Scale], tags=["Admin - Configuration"])
