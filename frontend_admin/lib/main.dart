@@ -1,3 +1,4 @@
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'app_version.dart';
 import 'screens/settings_screen.dart';
@@ -5,6 +6,7 @@ import 'screens/protocols_screen.dart';
 import 'screens/anagrafica_screen.dart';
 import 'screens/selection_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -16,11 +18,17 @@ class AdminApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Verifica se l'amministratore è già autenticato localmente
+    bool isAuthenticated = false;
+    try {
+      isAuthenticated = html.window.localStorage['admin_authenticated'] == 'true';
+    } catch (_) {}
+
     return MaterialApp(
       title: 'AutAnalysis Admin v$kFrontendVersion',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const AdminDashboard(),
+      home: isAuthenticated ? const AdminDashboard() : const LoginScreen(),
     );
   }
 }
@@ -103,9 +111,25 @@ class _AdminDashboardState extends State<AdminDashboard> {
               itemBuilder: (context, index) => _buildNavItem(index),
             ),
           ),
+          // Pulsante Logout
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, size: 20, color: AppTheme.errorColor),
+            tooltip: 'Esci',
+            onPressed: () {
+              try {
+                html.window.localStorage.remove('admin_authenticated');
+              } catch (_) {}
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (route) => false,
+              );
+            },
+          ),
+          const SizedBox(height: 8),
           // Footer
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(bottom: 16),
             child: Text(
               'v$kFrontendVersion',
               style: TextStyle(fontSize: 10, color: AppTheme.textSecondary.withValues(alpha: 0.5)),
