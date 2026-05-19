@@ -108,17 +108,30 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Icona Logo Premium
+                    // Logo Bradipo Utenza
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      width: 80,
+                      height: 80,
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      child: const Icon(
-                        Icons.lock_outline_rounded,
-                        color: AppTheme.primaryColor,
-                        size: 32,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(40),
+                        child: Image.asset(
+                          'assets/images/logo_bradipo.png',
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const CircleAvatar(
+                            backgroundColor: AppTheme.primaryColor,
+                            child: Icon(Icons.psychology, color: Colors.white, size: 40),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
