@@ -165,10 +165,13 @@ async def update_patient(id: str, patient: Patient):
 
 @admin_router.delete("/patients/{id}", tags=["Admin - Patients"])
 async def delete_patient(id: str):
+    # Elimina a cascata tutte le valutazioni associate al paziente prima di rimuoverlo
+    await evaluations_collection.delete_many({"id_paziente": id})
+    
     result = await patients_collection.delete_one({"id": id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Paziente non trovato")
-    return {"message": "Paziente eliminato con successo"}
+    return {"message": "Paziente e le relative valutazioni eliminati con successo"}
 
 @admin_router.get("/evaluations/{id_patient}", response_model=List[Evaluation], tags=["Admin - Evaluations"])
 async def get_evaluations(id_patient: str):
@@ -500,12 +503,25 @@ async def get_dashboard_stats():
     # 1. Recupero di tutti i pazienti e di tutte le scale per mappare i nomi
     patients_cursor = patients_collection.find({})
     patients = await patients_cursor.to_list(length=2000)
+    active_patient_ids = {pat["id"] for pat in patients}
     
     scales_cursor = scales_collection.find({})
     scales_list = await scales_cursor.to_list(length=100)
     scale_names = {s["id"]: s["nome"] for s in scales_list}
     
-    # 2. Recupero di tutte le valutazioni
+    # Self-healing: Purgamento automatico a database di eventuali valutazioni orfane
+    if active_patient_ids:
+        await evaluations_collection.delete_many({
+            "$or": [
+                {"id_paziente": {"$nin": list(active_patient_ids)}},
+                {"id_paziente": {"$exists": False}},
+                {"id_paziente": None}
+            ]
+        })
+    else:
+        await evaluations_collection.delete_many({})
+        
+    # 2. Recupero di tutte le valutazioni pulite ed integre
     evaluations_cursor = evaluations_collection.find({})
     evaluations = await evaluations_cursor.to_list(length=5000)
     
