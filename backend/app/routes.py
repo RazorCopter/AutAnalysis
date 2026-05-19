@@ -136,6 +136,27 @@ def _hydrate_scale_doc(scale_doc: Optional[dict]) -> dict:
 async def get_patients():
     cursor = patients_collection.find({})
     patients = await cursor.to_list(length=1000)
+    
+    # Arricchisce ciascun paziente con le date delle ultime scale compilate
+    for pat in patients:
+        pat_id = pat["id"]
+        
+        # Cerca l'ultima valutazione POS
+        last_pos = await evaluations_collection.find_one(
+            {"id_paziente": pat_id, "id_scala": {"$regex": "pos", "$options": "i"}},
+            sort=[("data_compilazione", -1)]
+        )
+        if last_pos:
+            pat["ultimo_pos_compilato"] = last_pos.get("data_compilazione")
+            
+        # Cerca l'ultima valutazione San Martín
+        last_sm = await evaluations_collection.find_one(
+            {"id_paziente": pat_id, "id_scala": {"$regex": "san.*martin", "$options": "i"}},
+            sort=[("data_compilazione", -1)]
+        )
+        if last_sm:
+            pat["ultimo_san_martin_compilato"] = last_sm.get("data_compilazione")
+            
     return patients
 
 @admin_router.get("/scales", response_model=List[Scale], tags=["Admin - Configuration"])

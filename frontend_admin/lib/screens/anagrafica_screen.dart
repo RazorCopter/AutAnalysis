@@ -650,34 +650,102 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
               const Spacer(),
             const Spacer(),
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.analytics_outlined, size: 18, color: AppTheme.accentColor),
-                  onPressed: () => _openProtocolDialog(patient),
-                  tooltip: 'Scegli Protocollo',
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(4),
+                // Indicatori delle scale cliniche compilate
+                Row(
+                  children: [
+                    _buildScaleIndicator(patient.ultimoPosCompilato, "POS"),
+                    const SizedBox(width: 6),
+                    _buildScaleIndicator(patient.ultimoSanMartinCompilato, "SanMartín"),
+                  ],
                 ),
-                const SizedBox(width: 6),
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 18, color: AppTheme.primaryColor),
-                  onPressed: () => _showPatientDialog(patient: patient),
-                  tooltip: 'Modifica',
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(4),
-                ),
-                const SizedBox(width: 6),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.errorColor),
-                  onPressed: () => _confirmDelete(patient),
-                  tooltip: 'Elimina',
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(4),
+                // Pulsanti Azione
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.analytics_outlined, size: 18, color: AppTheme.accentColor),
+                      onPressed: () => _openProtocolDialog(patient),
+                      tooltip: 'Scegli Protocollo',
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(4),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, size: 18, color: AppTheme.primaryColor),
+                      onPressed: () => _showPatientDialog(patient: patient),
+                      tooltip: 'Modifica',
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(4),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.errorColor),
+                      onPressed: () => _confirmDelete(patient),
+                      tooltip: 'Elimina',
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(4),
+                    ),
+                  ],
                 ),
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScaleIndicator(String? dateStr, String scaleName) {
+    Color badgeColor = Colors.grey.shade100;
+    Color textColor = Colors.grey.shade400;
+    String status = "Non compilata";
+    String formattedDate = "";
+
+    if (dateStr != null && dateStr.isNotEmpty) {
+      try {
+        final date = DateTime.parse(dateStr);
+        formattedDate = "${date.day}/${date.month}/${date.year}";
+        final now = DateTime.now();
+        final days = now.difference(date).inDays;
+
+        if (days > 180) {
+          // Scaduta: Rossa
+          badgeColor = AppTheme.errorColor.withValues(alpha: 0.12);
+          textColor = AppTheme.errorColor;
+          status = "Scaduta (compilata il $formattedDate)";
+        } else if (days > 150) {
+          // Prossima alla scadenza: Arancio
+          badgeColor = AppTheme.secondaryColor.withValues(alpha: 0.12);
+          textColor = AppTheme.secondaryColor;
+          status = "Prossima alla scadenza (compilata il $formattedDate)";
+        } else {
+          // Attiva e valida: Verde
+          badgeColor = AppTheme.accentColor.withValues(alpha: 0.12);
+          textColor = AppTheme.accentColor;
+          status = "Attiva (compilata il $formattedDate)";
+        }
+      } catch (_) {
+        badgeColor = Colors.grey.shade100;
+        textColor = Colors.grey.shade400;
+      }
+    }
+
+    return Tooltip(
+      message: "$scaleName: $status",
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: badgeColor,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          scaleName == "SanMartín" ? "SM" : "POS",
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
+            color: textColor,
+          ),
         ),
       ),
     );
@@ -699,6 +767,7 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
               Expanded(flex: 2, child: Text('NOME', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
               Expanded(flex: 2, child: Text('DATA NASCITA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
               Expanded(flex: 1, child: Text('SESSO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
+              Expanded(flex: 2, child: Text('DOCUMENTI', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
               Expanded(flex: 2, child: Text('FISICO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
               Expanded(flex: 3, child: Text('NOTE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary))),
               SizedBox(width: 120, child: Text('AZIONI', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary), textAlign: TextAlign.right)),
@@ -734,6 +803,16 @@ class _AnagraficaScreenState extends State<AnagraficaScreen> {
                       child: Text(
                         p.sesso ?? '-',
                         style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Row(
+                        children: [
+                          _buildScaleIndicator(p.ultimoPosCompilato, "POS"),
+                          const SizedBox(width: 6),
+                          _buildScaleIndicator(p.ultimoSanMartinCompilato, "SanMartín"),
+                        ],
                       ),
                     ),
                     Expanded(
