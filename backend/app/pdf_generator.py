@@ -305,48 +305,83 @@ def _make_qol_visual_chart(domains: List[dict]) -> io.BytesIO:
 # ─── Grafico a barre (fallback POS) ─────────────────────────────────────────
 
 def _make_bar_chart(domains: List[dict], score_min: int = 6, score_max: int = 18) -> io.BytesIO:
-    labels = [_wrap_label(d['etichetta']) for d in domains]
+    """
+    Crea un grafico a barre orizzontali dal design moderno ed elegante (stile bento/progress bar):
+    - Sfondo pulito con tracce di progresso grigie (background track)
+    - Barre dai colori curati e soft
+    - Punteggi visualizzati in badge eleganti
+    - Area normativa ottimale ombreggiata in modo discreto (axvspan)
+    - Gridline radiali soft ed eliminazione delle spine non necessarie
+    """
+    labels = [_wrap_label(d['etichetta'], max_chars=20) for d in domains]
     scores = [d["punteggio_totale"] for d in domains]
     n = len(labels)
     colors = DOMAIN_COLORS[:n]
 
-    fig, ax = plt.subplots(figsize=(10, max(3.5, n * 0.6 + 1.2)), dpi=140)
-    fig.patch.set_facecolor('#F8FBFF')
-    ax.set_facecolor('#F8FBFF')
+    # Dimensione dinamica per evitare sovrapposizioni
+    fig, ax = plt.subplots(figsize=(10, max(4.0, n * 0.7 + 1.2)), dpi=150)
+    fig.patch.set_facecolor('#FFFFFF')
+    ax.set_facecolor('#FFFFFF')
 
     y = np.arange(n)
-    bars = ax.barh(y, scores, color=colors, height=0.6, zorder=3)
+    
+    # 1. Disegna le tracce di sfondo grigie per dare l'effetto di "progress bar" moderno
+    max_track = [score_max] * n
+    ax.barh(y, max_track, color='#F1F5F9', height=0.45, edgecolor='none', zorder=1)
 
-    ax.axvline(score_min, color='#E57373', linewidth=1.2, linestyle='--',
-               alpha=0.7, label=f'Min ({score_min})')
-    ax.axvline(score_max, color='#81C784', linewidth=1.2, linestyle='--',
-               alpha=0.7, label=f'Max ({score_max})')
+    # 2. Disegna le barre reali dei punteggi
+    bars = ax.barh(y, scores, color=colors, height=0.45, edgecolor='none', zorder=2)
 
+    # 3. Evidenzia la fascia ottimale (normativa) con una sfumatura di sfondo discreta (tra 12 e 18)
+    ax.axvspan(12, 18, color='#4CAF50', alpha=0.06, label='Fascia Ottimale (12–18)', zorder=0)
+    ax.axvline(12, color='#81C784', linewidth=1.0, linestyle='--', alpha=0.5, zorder=0)
+
+    # 4. Aggiungi i testi dei punteggi con badge arrotondati
     for bar, score in zip(bars, scores):
-        ax.text(bar.get_width() + 0.2, bar.get_y() + bar.get_height() / 2,
-                str(score), va='center', ha='left', fontsize=10,
-                fontweight='bold', color='#2D3748')
+        width = bar.get_width()
+        ax.text(
+            width + 0.3, 
+            bar.get_y() + bar.get_height() / 2,
+            f"  {score}  ", 
+            va='center', 
+            ha='left', 
+            fontsize=9.5,
+            fontweight='bold', 
+            color='#1E293B',
+            bbox=dict(boxstyle='round,pad=0.25', facecolor='#F1F5F9', edgecolor='#E2E8F0', alpha=0.9),
+            zorder=4
+        )
 
+    # 5. Configurazione assi ed etichette
     ax.set_yticks(y)
-    ax.set_yticklabels(labels, fontsize=10, color='#2D3748')
-    ax.set_xlabel('Punteggio', fontsize=10, color='#718096')
-    ax.set_xlim(0, score_max * 1.18)
-    ax.invert_yaxis()
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_color('#E8EEF8')
-    ax.spines['bottom'].set_color('#E8EEF8')
-    ax.grid(axis='x', color='#E8EEF8', linestyle='--', linewidth=0.8)
-    ax.legend(loc='lower right', fontsize=9)
-    ax.set_title('Istogramma Comparato dei Punteggi per Dominio', fontsize=13,
-                 fontweight='bold', color='#2D3748', pad=12)
+    ax.set_yticklabels(labels, fontsize=9.5, color='#334155', fontweight='bold')
+    ax.set_xlabel('Punteggio', fontsize=9.5, color='#64748B', fontweight='bold', labelpad=8)
+    ax.set_xlim(0, score_max * 1.15)
+    ax.invert_yaxis()  # Inverte l'ordine per avere il primo dominio in alto
+    
+    # Rimozione delle spine superflue per un look minimale
+    for spine in ['top', 'right', 'left', 'bottom']:
+        ax.spines[spine].set_visible(False)
+
+    # Configurazione della griglia verticale
+    ax.xaxis.grid(True, color='#F1F5F9', linestyle='-', linewidth=1.0, zorder=1)
+    ax.yaxis.grid(False)
+    ax.tick_params(bottom=False, left=False)
+
+    # Titolo ed elementi di contorno
+    ax.set_title('Profilo di Qualità della Vita per Dominio', fontsize=12.5,
+                 fontweight='bold', color='#0F172A', pad=18)
+    
+    # Legenda moderna e discreta
+    ax.legend(loc='lower right', frameon=False, fontsize=8.5)
 
     plt.tight_layout()
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight', facecolor='#F8FBFF')
+    plt.savefig(buf, format='png', bbox_inches='tight', facecolor='#FFFFFF', dpi=150)
     plt.close(fig)
     buf.seek(0)
     return buf
+
 
 
 # ─── Helper tabelle ─────────────────────────────────────────────────────────
@@ -960,24 +995,24 @@ def generate_evaluation_pdf(
     story.append(PageBreak())
     story.append(Paragraph("Dettaglio Risposte", section_header))
 
-    if is_sanmartin and analysis is not None:
-        # Build map for San Martin questions (supporting both "sezioni" and "domini")
-        questions_map = {}
-        if scale:
-            sections = scale.get("sezioni") or scale.get("domini") or []
-            for section in sections:
-                for q in section.get("domande", []):
-                    q_code = q.get("codice") or q.get("id_domanda") or q.get("codice_domanda")
-                    if q_code:
-                        opts = q.get("opzioni") or q.get("opzioni_risposta") or []
-                        questions_map[q_code] = {
-                            "testo": q.get("testo") or q.get("testo_domanda") or "",
-                            "opzioni": {
-                                str(opt.get("punteggio")): opt.get("etichetta") or opt.get("testo_risposta") or ""
-                                for opt in opts
-                            }
+    # Build map for questions (supporting both "sezioni" and "domini" across all scales)
+    questions_map = {}
+    if scale:
+        sections = scale.get("sezioni") or scale.get("domini") or []
+        for section in sections:
+            for q in section.get("domande", []):
+                q_code = q.get("codice") or q.get("id_domanda") or q.get("codice_domanda")
+                if q_code:
+                    opts = q.get("opzioni") or q.get("opzioni_risposta") or []
+                    questions_map[q_code] = {
+                        "testo": q.get("testo") or q.get("testo_domanda") or "",
+                        "opzioni": {
+                            str(opt.get("punteggio")): opt.get("testo_risposta") or opt.get("etichetta") or ""
+                            for opt in opts
                         }
+                    }
 
+    if questions_map:
         resp_headers = ["Codice", "Domanda", "Risposta", "Nota"]
         resp_rows = []
         cell_style = ParagraphStyle('RespCell', parent=styles['Normal'], fontSize=8, leading=10)
@@ -1014,7 +1049,7 @@ def generate_evaluation_pdf(
             [('VALIGN', (0, 0), (-1, -1), 'TOP')]
         )
     else:
-        # Fallback/standard style for other scales
+        # Fallback if no questions are found in scale definition
         resp_headers = ["Codice", "Punteggio", "Nota"]
         resp_rows = [
             [
