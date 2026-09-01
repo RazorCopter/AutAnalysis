@@ -34,7 +34,7 @@ services:
 
   # DATABASE
   autify-db:
-    image: mongo:latest
+    image: mongo:8.9
     restart: unless-stopped
     volumes:
       - autify_data:/data/db
